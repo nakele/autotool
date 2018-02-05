@@ -161,7 +161,7 @@
   "version" : "1.7",
   "description" : "Tool to [BULK AUTORENAME] && [BULK REPLACE TEXT], [READY TO EXPORT] before Anima, [SELECTION] and [COLOR SWAP]",
   "authorEmail" : "federico.fala@gmail.com",
-  "appcast": "https://raw.githubusercontent.com/utom/sketch-measure/master/appcast.xml",
+  "appcast": "https://raw.githubusercontent.com/nakele/autotool/master/appcast.xml",
   "homepage": "https://github.com/nakele/autotool",
   "name" : "Sketch Bulk Tools"
 }
