@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
+  <channel>
+  	<title>Sketch Bulk Tools</title>
+    <link>https://raw.githubusercontent.com/nakele/autotool/master/appcast.xml</link>
+    <description>Bulk do something in Sketch like bulk change text everywhere</description>
+	<language>en</language>
+    <item>
+    	<title>Version 1.7</title>
+      <description>
+        <![CDATA[
+          <ul>
+            <li>Early beta for Sketch v48</li>
+          </ul>
+        ]]>
+      </description>
+      <enclosure url="https://github.com/nakele/autotool/archive/master.zip" sparkle:version="2.7" type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,165 @@
+{
+  "author" : "Fed",
+  "commands" : [
+    {
+      "script" : "script.cocoascript",
+      "name" : "[SELECTION] Select the same Key/Value",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "sameValueTextLayers"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier12"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[SELECTION] Select the same type of symbol",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "selectSameSymbolInstances"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier11"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[AUTO RENAMER] Incremental",
+      "shortcut": "ctrl shift +",
+      "handlers" : {
+        "run" : "onAutoRenamerIncremental"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier1"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[AUTO RENAMER] Substitute",
+      "shortcut": "ctrl shift R",
+      "handlers" : {
+        "run" : "onAutoRenamerSubstituter"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier2"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[AUTO RENAMER] Make all the same",
+      "shortcut": "ctrl shift -",
+      "handlers" : {
+        "run" : "onAutoRenamerSamer"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier3"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[AUTO RENAMER] Append",
+      "shortcut": "ctrl shift *",
+      "handlers" : {
+        "run" : "onAutoRenamerAppender"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier4"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[AUTO RENAMER] Add Prefix",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "onAddPrefix"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier5"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "Add Slices before [READY TO EXPORT]",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "onAddSicesAnima"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier6"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[READY TO EXPORT] Bundle",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "onReadyToExport"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier7"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[COLOR SWAP] to black",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "onRunBlack"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier8"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[COLOR SWAP] to white",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "onRunWhite"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier9"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[COLOR SWAP] to custom",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "onRunCustom"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier10"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "[BULK REPLACE TEXT] everywhere",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "findAndReplaceEvery"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier13"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "export to [BULK REPLACE TEXT]",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "exportToJSON"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier14"
+    },
+    {
+      "script" : "script.cocoascript",
+      "name" : "import to [BULK REPLACE TEXT]",
+      "shortcut": "",
+      "handlers" : {
+        "run" : "loadFromJSON"
+      },
+      "identifier" : "com.bohemiancoding.sketch.runscriptidentifier15"
+    }
+  ],
+  "menu" : {
+    "items" : [
+      "com.bohemiancoding.sketch.runscriptidentifier1",
+      "com.bohemiancoding.sketch.runscriptidentifier2",
+      "com.bohemiancoding.sketch.runscriptidentifier3",
+      "com.bohemiancoding.sketch.runscriptidentifier4",
+      "com.bohemiancoding.sketch.runscriptidentifier5",
+      "com.bohemiancoding.sketch.runscriptidentifier6",
+      "com.bohemiancoding.sketch.runscriptidentifier7",
+      "com.bohemiancoding.sketch.runscriptidentifier8",
+      "com.bohemiancoding.sketch.runscriptidentifier9",
+      "com.bohemiancoding.sketch.runscriptidentifier10",
+      "com.bohemiancoding.sketch.runscriptidentifier11",
+      "com.bohemiancoding.sketch.runscriptidentifier12",
+      "com.bohemiancoding.sketch.runscriptidentifier13",
+      "com.bohemiancoding.sketch.runscriptidentifier14",
+      "com.bohemiancoding.sketch.runscriptidentifier15"
+    ],
+    "title" : "Fed Magic Tools"
+  },
+  "identifier" : "com.example.sketch.autotool",
+  "version" : "1.7",
+  "description" : "Tool to [BULK AUTORENAME] && [BULK REPLACE TEXT], [READY TO EXPORT] before Anima, [SELECTION] and [COLOR SWAP]",
+  "authorEmail" : "federico.fala@gmail.com",
+  "name" : "Fed Magic Tools"
+}

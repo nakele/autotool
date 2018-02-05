@@ -1,0 +1,1176 @@
+function initiate(context){
+
+document = context.document;
+artboards = document.artboards();
+selection = context.selection;
+json = {};
+LOG = function(a){
+    //log(a);
+}
+
+//define a popup handler
+alert = function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+//make a list of all the layers from the current page
+children = []
+for(var i=0; i<artboards.length; i++){for(var n=0;n<artboards[i].children().length;n++){children.push(artboards[i].children()[n])}}
+
+//find all the layers in the current page that match the given value
+findSameValueTextLayer_text = function(text){
+var list = [];
+var a = text;
+for(var i=0; i<children.length; i++){
+    if(children[i].className().isEqualToString('MSTextLayer')){
+        //LOG(children[i].className()+" and "+children[i].stringValue()+"; Also "+text.className()+" and "+text.stringValue());
+        var b = ""+children[i].stringValue();
+        if(a == b){LOG("true");
+            list.push(children[i]);
+        };
+    }
+};
+return list;
+}
+
+
+//find all the layers in the current page that are key/value
+findSameValueTextLayer = function(layer){
+    var text = ""+layer.stringValue();
+    findSameValueTextLayer_text(text);
+return list;
+}
+
+//pass a list of text layers and apply the value
+applyNewValueToTextLayers = function(text_layers){
+    if(text_layers == undefined){alert("applyNewValueToTextLayers had an undefined parameter passed to it"); return}
+    for (var key in text_layers){
+        findById(key+"").setStringValue(text_layers[key])
+    }
+}
+
+//find all the layers in the current page that are text
+findTextLayers = function(){
+var list = [];
+for(var i=0; i<children.length; i++){
+    if(children[i].className().isEqualToString('MSTextLayer')){
+            list.push(children[i]);
+    }
+};
+return list;
+}
+
+//function to check if item is the end of a branch of an object
+end = function(item){
+    for(var someotherkey in item){
+        if(typeof item != "string" && typeof item != "number"){return false}
+    };
+    return true;
+}
+
+//map object to name rather than numbers
+map = function(){
+var path = "";
+var altPath = "";
+var map = {};
+
+function iter(obj){
+    for(var key in obj){
+        var KEY = (typeof findById(key+"") == "undefined")?key:findById(key+"").name();
+        path+=KEY+".";
+        altPath+=key+".";
+        if(end(obj[key])){
+            builder(map,path,obj[key]);
+        }else{
+            iter(obj[key])
+        }
+        altPath = altPath.split(key)[0]
+        path = path.slice(0,path.lastIndexOf(KEY+"."));
+    }
+}
+
+iter(some);
+return map;
+}
+
+//OBJ builder like a json
+builder = function(obj, path, value){ LOG("BUILDER: "+path);
+var pointer = obj;
+var path = path.split(".");
+for(var i=0; i<path.length-1; i++){
+if(typeof pointer[path[i]+""] == "undefined"&&i<path.length-2){
+    pointer[path[i]+""]={}; pointer = pointer[path[i]+""];
+}else if(typeof pointer[path[i]+""] == "undefined" || typeof pointer[path[i]+""] == "string" || typeof pointer[path[i]+""] == "number"){
+    LOG("change it with: "+value)
+    pointer[path[i]+""]=value+"";
+}else{
+    pointer = pointer[path[i]+""];
+};
+}
+return {"obj":obj,"pointer":pointer};
+}
+
+//find the last element, the actual key/value of a symbol
+iterate = function(item,N,listElem){
+if(typeof N == null || typeof N == "undefined"){LOG("N is undefined"); var N = 0};N++
+if(typeof listElem == null || typeof listElem == "undefined"){LOG("listElem is undefined"); var listElem = []};
+for(key in item){LOG("LEVEL"+N+" ###############");
+LOG("Key: "+key+" and Value: "+ item[key]);
+//if(end(item[key])){var obj = findById(""+key); listElem[obj.name()+""] = {"value":""+item[key],"id":key+"", "key": obj.name()+""}};
+if(end(item[key])){listElem.push(""+item[key])};
+iterate(item[key],N,listElem);
+};
+N--
+if(N==0){return listElem};
+}
+
+//clean up object
+cleanUpInstance = function(symbol){
+var selector = symbol.objectID();
+function cleanUpInstanceIterate(symbol,item,N,listElem,selector,path){//LOG("Selector= "+selector);
+if(typeof N == null || typeof N == "undefined"){LOG("N is undefined"); var N = 0};N++
+if(typeof listElem == null || typeof listElem == "undefined"){LOG("listElem is undefined"); var listElem = []};
+if(typeof path == null || typeof path == 'undefined'){var path=""};
+for(var key in item){LOG("LEVEL"+N+" ###############");
+LOG("Key: "+key+" and Value: "+ item[key]);
+path+=key+".";
+
+//LOG(key+""=="symbolID");
+
+if((typeof item["symbolID"] != "undefined" || typeof item["symbolID"] != null) && key+""!="symbolID" && item["symbolID"] != 'null' && item["symbolID"] != '' && item["symbolID"] != null && !isIDPartOfSymbol(key+"",findById(item["symbolID"]+""),"0")){
+    LOG("¢¢¢ layerID detected ¢¢¢ "+item['symbolID']);
+    LOG("***DELETE: "+path);
+    isIDPartOfSymbol(key+"",findById(item["symbolID"]+""),"1");
+    overrideSymbolByPath(symbol,""+path,"_","delete");
+}else if((typeof item["symbolID"] != "undefined" || typeof item["symbolID"] != null) && key+""=="symbolID" && item["symbolID"] != 'null' && item["symbolID"] != null){
+    //if key == "symbolID"
+    LOG("¢¢¢ layerID detected ¢¢¢ "+item['symbolID']+" but not deleting because key= "+key);
+}else if((typeof item["symbolID"] != "undefined" || typeof item["symbolID"] != null) && key+""!="symbolID" && item["symbolID"] != 'null' && item["symbolID"] != null && item["symbolID"] != "" && isIDPartOfSymbol(key+"",findById(item["symbolID"]+""),"2")){
+    LOG("¢¢¢ layerID detected ¢¢¢ "+item['symbolID']+" but not deleting because key= "+key+" is an instance of Master");
+}else if(typeof findById(""+key) == 'undefined' || !isIDPartOfSymbol(key,selector,"3")){
+    LOG("***DELETE: "+path); 
+    overrideSymbolByPath(symbol,""+path,"_","delete");
+}else if(false){
+    cleanUpInstanceIterate(symbol,item[key],N,listElem,key,path);
+}
+
+path = path.split(key+".")[0];
+};
+N--
+if(N==0){return listElem};
+}
+return cleanUpInstanceIterate(symbol,symbol.overrides(),null,null,selector)
+}
+
+//overrideSymbol
+overrideSymbol = function(symbol,key,value,action){
+var prop = {};
+var overrides = symbol.overrides();
+function iterateOverrides(prop,overrides,exception){
+for(KEY in overrides){LOG("Exception: "+exception+" KEY: "+KEY);
+if(""+exception!=KEY+""){
+if(end(overrides[""+KEY])){
+    prop[""+KEY] = overrides[""+KEY]
+}else{
+    if(typeof prop[""+KEY]=='undefined'){prop[""+KEY] = {}}; iterateOverrides(prop[""+KEY],overrides[""+KEY],exception);
+}
+}
+}
+};
+
+iterateOverrides(prop,overrides); 
+LOG("The final PROP is"); LOG(prop);
+
+if(action){LOG("DELETE ACTION");
+PROP = {};
+//for(KEY in prop){if(""+key!=KEY+""){PROP[""+KEY] = prop[""+KEY]}};
+iterateOverrides(PROP,prop,key);
+prop = PROP;
+}else{LOG("EDIT ACTION");prop[""+key] = ""+value;};
+
+LOG(prop);
+symbol.setOverrides(prop);
+}
+
+//overrideSymbol2
+overrideSymbolByPath = function(symbol,key,value,action){
+var prop = {};
+var overrides = symbol.overrides();
+
+function builderz(obj, path, value){ LOG("BUILDER: "+path);
+var pointer = obj;
+var path = path.split(".");
+for(var i=0; i<path.length-1; i++){
+if(typeof pointer[path[i]+""] == "undefined"&&i<path.length-2){
+    pointer[path[i]+""]={}; pointer = pointer[path[i]+""];
+}else if(typeof pointer[path[i]+""] == "undefined" || typeof pointer[path[i]+""] == "string" || typeof pointer[path[i]+""] == "number"){
+    LOG("change it with: "+value)
+    pointer[path[i]+""]=value+"";
+}else{
+    pointer = pointer[path[i]+""];
+};
+}
+return {"obj":obj,"pointer":pointer};
+}
+
+function iterateOverrides(prop,overrides,exception,path){
+if(typeof path == 'undefined'){var path=""};
+for(var KEY in overrides){//LOG("Exception: "+exception+" KEY: "+KEY); 
+    path+=KEY+".";
+        if(""+path == exception+""){LOG("Found matching Path: "+path)}
+        if(!path.indexOf(""+exception)==0){
+            LOG("KEY="+KEY); 
+            //end(overrides[""+KEY]);
+            if(end(overrides[KEY])){
+                if(""+exception!=path+""){
+                    var temp_prop = builderz(prop, path, overrides[""+KEY]);
+                }
+            }else{
+                iterateOverrides(prop,overrides[""+KEY],exception,path);
+            }
+        }
+    path = path.split(KEY+".")[0]
+}
+};
+
+iterateOverrides(prop,overrides); 
+LOG("The final PROP is"); LOG(prop);
+
+if(action){LOG("DELETE ACTION");
+PROP = {};
+iterateOverrides(PROP,prop,key);
+prop = PROP;
+}else{LOG("EDIT ACTION");
+PROP = prop;
+builderz(PROP,key,value);
+prop = PROP;
+};
+LOG("Proccessed prop =")
+LOG(prop);
+symbol.setOverrides(prop);
+}
+
+//check if a layer is a part of a master
+isIDPartOfSymbol = function(ID,master,value){
+    LOG("Checking If ID: "+ID+" is part of Master ID: "+master);
+    if(typeof master == "undefined"){log("MASTER UNDEFINED "+value)};
+    if(typeof master == "string" || master.className() == "__NSCFString"){
+    master = findById(master);
+    };
+    if(master){master = findLayersInSymbol(master);}else{return false};
+    for(var i=0; i<master.length; i++){
+        if(ID+"" == master[i].objectID()+""){return true}
+    };
+    return false;
+}
+
+//find Master Symbol Children
+findLayersInSymbol = function(symbol){
+    if(symbol.className().isEqualToString('MSSymbolInstance')){
+        //LOG("Return INSTANCE")
+        return symbol.symbolMaster().children()
+    }else if(symbol.className().isEqualToString('MSSymbolMaster')){  
+        //LOG("Return MASTER")
+        return symbol.children();
+    }else{
+        return false;
+    }
+}
+
+//find layer by ID
+findById = function(id){
+    var ID = context.document.documentData().symbolWithID(id) || context.document.documentData().layerWithID(id)
+    if(ID){return ID};
+    LOG("+++CONTINUING");
+    for(var page_number=0; page_number<context.document.pages().length; page_number++){
+        //LOG(context.document.pages()[page_number])
+        for(var child_number=0; child_number<context.document.pages()[page_number].children().length; child_number++){
+            //LOG(context.document.pages()[page_number].children()[child_number])
+            if(context.document.pages()[page_number].children()[child_number].objectID()+""==id+""){
+                //LOG("## LAYER FOUND ###"+context.document.pages()[page_number]+"#####");
+                return context.document.pages()[page_number].children()[child_number]
+            }
+        }
+    };
+    for(var page_number=0; page_number<context.document.pages().length; page_number++){
+        //LOG(context.document.pages()[page_number])
+        for(var child_number=0; child_number<context.document.pages()[page_number].artboards().length; child_number++){
+            //LOG(context.document.pages()[page_number].artboards()[child_number])
+            if(context.document.pages()[page_number].artboards()[child_number].objectID()+""==id+""){
+                //LOG("## ARTBOARD FOUND ###"+context.document.pages()[page_number]+"#####");
+                return context.document.pages()[page_number].artboards()[child_number]
+            }
+        }
+    }
+}
+//*/
+
+//build view from Master Symbol
+buildSymbolView = function(symbol){
+var obj = {};
+var overrides = symbol.overrides();
+//give overrides from a symbol, merges them with JSON, need to pass a path.
+function merge(overrides,path){ LOG("#### Merging overrides: "); LOG(overrides);
+    if(typeof path == null || typeof path == "undefined"){LOG("path build is undefined"); var path=""};
+    LOG("MERGE PATH:"+path);
+    for(var KEY in overrides){
+        path+=KEY+".";
+        merge(overrides[KEY],path);
+        builder(obj,path,overrides[KEY]);
+        path = path.split(KEY+"")[0];
+    }
+}
+
+function iterate(symbol,path){
+if(typeof path == null || typeof path == "undefined"){LOG("path is undefined"); var path=""};
+var layers = findLayersInSymbol(symbol);
+for(var i=0;i<layers.length;i++){
+if(layers[i].className().isEqualToString('MSSymbolInstance')&&layers[i].isVisible()&&!layers[i].isLocked()){LOG("found INSTANCE")
+    LOG(layers[i])
+    path+=layers[i].objectID()+".";
+    iterate(layers[i],path);
+    obj = builder(obj,path).obj;
+    path = path.split(layers[i].objectID()+"")[0];
+}else if(layers[i].className().isEqualToString('MSTextLayer')&&layers[i].isVisible()&&!layers[i].isLocked()){LOG("found TEXT")
+    path+=layers[i].objectID()+".";
+    obj = builder(obj,path,layers[i].stringValue()+"").obj;
+    path = path.split(layers[i].objectID()+"")[0];
+}else if(i+"" == "stringID" ){ //&& findById(layers[i])+"" != findById(path.split(".")[0]+"").symbolMaster()+""
+    //path+="stringID.";
+    obj = builder(obj,path+"symbolID.",layers[i]).obj;
+    //path = path.split(layers[i].objectID()+"")[0];
+}
+LOG("PATH: "+path);
+    if(i==layers.length-1){
+        var number = 0;
+        for(var symbolIDKey in layers[i]){
+            number++
+        }
+        LOG("NUMBER= "+number+" in "+layers[i]+" for "+ symbolIDKey);
+        //path+=layers[i].objectID()+".";
+        if(number<1 && path != ""){LOG("GO++++")
+            obj = builder(obj,path+"symbolID.",layers[i].symbolID()).obj;
+            var obj_overrides_merge = path.split(".")[path.split(".").length-2];
+            LOG(">>> END and Merge Overrides for: "+path); LOG(obj_overrides_merge);
+            LOG(findById(obj_overrides_merge))
+            LOG(">>> Overrides:")
+            LOG(findById(obj_overrides_merge).overrides())
+            LOG("**## RUN MERGE FN ##**")
+            merge(findById(obj_overrides_merge).overrides(),obj_overrides_merge+".")
+        }
+        
+        //path = path.split(layers[i].objectID()+"")[0];
+    }
+}
+}
+iterate(symbol);
+LOG("**## RUN MERGE FN ##**")
+merge(overrides)
+return obj;
+}
+
+
+
+//delete key
+deleteKey = function(symbol,key){overrideSymbolByPath(symbol,key,"_","delete");}
+editKey = function(symbol,key,value){overrideSymbolByPath(symbol,key,value);}
+
+iterateSymbolsAndDoSomething = function(select,fn){
+    for(var i = 0; i < select.length; i++){
+        if(select[i].className().isEqualToString('MSSymbolInstance')){
+            LOG("Iterate"+select[i])
+            fn(select[i]);
+        };
+    }
+}
+
+cleanSymbolsInCurrentPage = function(){
+    iterateSymbolsAndDoSomething(document.currentPage().children(),cleanUpInstance);
+}
+
+jsonSymbolsInCurrentPage = function(){
+    iterateSymbolsAndDoSomething(document.currentPage().children(),buildjson_json);
+}
+
+buildjson_json = function(symbol){
+    json = buildjson(symbol,json)
+}
+
+buildjson = function(symbol,json){
+    if(typeof json == "undefined"){var json = {};};
+    json[symbol.objectID()+""]=buildSymbolView(symbol);
+    return json;
+}
+
+matchFromJson = function(jsonImported){
+    for(var layer in jsonImported){
+        _layer = findById(layer+"");
+        if(typeof _layer != "undefined" && _layer!="undefined" && _layer.className().isEqualToString('MSSymbolInstance')){
+            _layer.setOverrides(jsonImported[layer]);
+        }
+    }
+}
+
+
+
+saveToJson = function(){
+
+json = {};
+
+jsonSymbolsInCurrentPage();
+
+var text_layers = findTextLayers();
+var json_text_layers = {}
+for (var i = text_layers.length - 1; i >= 0; i--) {
+    json_text_layers[text_layers[i].objectID()] = text_layers[i].stringValue()+"";
+};
+
+var combined_json = {};
+combined_json.symbols = json;
+combined_json.text_layers = json_text_layers;
+
+LOG("*****SHOW combined_json*****")
+LOG(combined_json);
+
+var save = NSSavePanel.savePanel();
+    save.setNameFieldStringValue("untitled.json");
+    save.setAllowedFileTypes(["json"]);
+    save.setAllowsOtherFileTypes(false);
+    save.setExtensionHidden(false);
+
+if (save.runModal()) {
+    var filePath = save.URL().path();
+    var file = NSString.stringWithString(JSON.stringify(combined_json));
+        
+    file.writeToFile_atomically_encoding_error(filePath, true, NSUTF8StringEncoding, null);
+
+}   
+}
+
+
+
+loadFromJson = function(){
+    json = {};
+    text_layers = {};
+    var app = NSApp.delegate();
+    var doc = context.document;
+    //var version = context.plugin.version().UTF8String();
+    var fileTypes = ["json"];
+        
+    // Open file picker to choose palette file
+    var open = NSOpenPanel.openPanel();
+    open.setAllowedFileTypes(fileTypes);
+    open.setCanChooseDirectories(true);
+    open.setCanChooseFiles(true);
+    open.setCanCreateDirectories(true);
+    open.setTitle("Choose a file");
+    open.setPrompt("Choose");
+    open.runModal();
+    
+    // Read contents of file into NSString, then to JSON
+    var filePath = open.URLs().firstObject().path();
+    var fileContents = NSString.stringWithContentsOfFile(filePath);
+
+    combined_json = JSON.parse(fileContents.toString());
+
+    LOG(combined_json);
+
+    if(typeof combined_json.symbols != "undefined"){
+        json = combined_json.symbols;
+    }
+
+    if(typeof combined_json.text_layers != "undefined"){
+        text_layers = combined_json.text_layers;
+    }
+
+    //only text layers
+    applyNewValueToTextLayers(text_layers);
+
+    //only for symbols
+    matchFromJson(json);
+}
+
+//convert json output from buildjson_json(context.selection[0]) to human readable
+convert_json_to_human = function(obj){
+    var temp_obj = {};
+    for (var key in obj){
+        var value = obj[key];
+        if(typeof value == 'object'){
+            temp_obj[findById(key).name()+"___"+key+""] = convert_json_to_human(value);
+        }else if(key == "symbolID"){
+            temp_obj["symbolID"] = value
+        }else if(key.length > 30 ){
+            temp_obj[findById(key).name()+"____"+key] = value
+        }
+    }
+    return temp_obj;
+}
+
+
+//look into the json to find an exact_text and add the path to this array: look_deeper_list = []
+look_deeper = function(obj,exact_text,path){ 
+    if(typeof path == "undefined"){var path = ""}; 
+    if(typeof obj == "undefined"){return "obj is not defined"};
+    if(typeof exact_text == "undefined"){return "exact_text is not defined"};
+    for(var key in obj){log(key)
+        var value = obj[key];
+        if(typeof value == "string"){
+            if(value == exact_text){look_deeper_list.push(path+"."+key)}
+        }else if(typeof value == "object"){
+            look_deeper(value,exact_text,path+"."+key);
+        }
+    }
+}
+
+
+
+}
+//#######################################################
+//#######################################################
+
+var exportToJSON = function(context){
+    initiate(context);
+    saveToJson();
+}
+
+
+var loadFromJSON = function(context){
+    initiate(context);
+    loadFromJson();
+}
+
+
+var findAndReplaceEvery = function(context){
+    initiate(context);
+
+    //clear selection (NOT NEEDED NOW)
+    //if(context.selection.length > 0){context.selection[0].select_byExpandingSelection(false, false);}
+
+    //ask user what text they want to find with a dialog
+    var exact_text = [document askForUserInput:'What do you want to find?' initialValue:'exact text here'];
+
+    //ask user what text they want to change it with
+    var substitute_text = [document askForUserInput:'How do you want to change it?' initialValue:'exact text here'];
+
+    //json = {};
+    //this is needed to make json variable available
+    jsonSymbolsInCurrentPage()
+
+    LOG(json)
+
+    look_deeper_list =[]
+    var list = []
+
+    //if exact_text is made of 2 or more words then split the words and call fn multiple times
+    if(exact_text.indexOf("&&")>-1){ 
+        list = []
+        for (var i = exact_text.split("&&").length - 1; i >= 0; i--) {
+             //(symbols only) 
+            look_deeper(json,exact_text.split("&&")[i]);
+
+            //make a list of layers that matches the exact_text
+            list = list.concat(findSameValueTextLayer_text(exact_text.split("&&")[i]));LOG(list)
+        };
+        
+    }else{
+
+        //(symbols only) 
+        look_deeper(json,exact_text)
+        //make a list of layers that matches the exact_text
+        list = findSameValueTextLayer_text(exact_text);LOG(list)
+    }
+
+    LOG('##### Show List ######')
+
+    LOG(look_deeper_list)
+
+    //apply new value to text layers
+    for (var i = 0; i < list.length; i++) {
+        //list[i].select_byExpandingSelection(true, true);
+        list[i].setStringValue(substitute_text);
+    }
+
+    //from the list apply the changes calling editKey
+    for (var i = look_deeper_list.length - 1; i >= 0; i--) {
+        var remove_dot = look_deeper_list[i].slice(1)
+        var entity_id = remove_dot.split(".")[0]
+        var path_to_edit = remove_dot.slice(remove_dot.indexOf(".")+1)+"."
+        editKey(findById(entity_id),path_to_edit,substitute_text)
+    };
+
+        //if nothing returns alert the user
+    if(list.length < 1 && look_deeper_list.length < 1){alert("No layer found with text: "+exact_text)}
+
+}
+
+
+//#######################################################
+//#######################################################
+
+var selectSameSymbolInstances = function(context) {
+
+var document = context.document
+var artboards = document.artboards()
+
+var alert= function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+//make a list of all the layers from the current page
+var children = []
+for(var i=0; i<artboards.length; i++){for(var n=0;n<artboards[i].children().length;n++){children.push(artboards[i].children()[n])}}
+
+//find all the layers in the current page that are from the same symbol instance
+function findSameMasterInstanceLayers(layer){
+var list = [];
+for(var i=0; i<children.length; i++){if(children[i].className().isEqualToString('MSSymbolInstance')&&children[i].symbolMaster().objectID() == layer.symbolMaster().objectID()){list.push(children[i])}};
+return list;
+}
+
+//call function with selected element
+if(context.selection.length==1&&context.selection[0].className().isEqualToString('MSSymbolInstance')){
+var list = findSameMasterInstanceLayers(context.selection[0])
+//make new selection
+for (var i = 0; i < list.length; i++) {
+    list[i].select_byExpandingSelection(true, true);
+}
+}else if(context.selection.length==1){
+alert("You have selected a "+context.selection[0].className()+"! you need to select a symbol.")
+}else if(context.selection.length==0){
+alert("No layer selected! Select a symbol.")
+}else if(context.selection.length>1){
+alert("Too many layers selected! Select 1 symbol.")
+}else{
+alert("Error but I dont know")
+}
+
+
+}
+
+
+//#######################################################
+//#######################################################
+
+var sameValueTextLayers = function(context) {
+
+var document = context.document
+var artboards = document.artboards()
+
+var alert= function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+//make a list of all the layers from the current page
+var children = []
+for(var i=0; i<artboards.length; i++){for(var n=0;n<artboards[i].children().length;n++){children.push(artboards[i].children()[n])}}
+
+//find all the layers in the current page that are key/value
+function findSameValueTextLayer (layer){
+var list = [];
+for(var i=0; i<children.length; i++){
+    if(children[i].className().isEqualToString('MSTextLayer')){
+        //log(children[i].className()+" and "+children[i].stringValue()+"; Also "+layer.className()+" and "+layer.stringValue());
+        var a = ""+layer.stringValue(); 
+        var b = ""+children[i].stringValue();
+        if(a == b){
+            list.push(children[i]);
+        };
+    }
+};
+return list;
+}
+
+//call function with selected element
+if(context.selection.length==1&&context.selection[0].className().isEqualToString('MSTextLayer')){
+var list = findSameValueTextLayer(context.selection[0]);log(list)
+//make new selection
+for (var i = 0; i < list.length; i++) {
+    list[i].select_byExpandingSelection(true, true);
+}
+}else if(context.selection.length==1){
+alert("You have selected a "+context.selection[0].className()+"! you need to select a text layer.")
+}else if(context.selection.length==0){
+alert("No layer selected! Select a text.")
+}else if(context.selection.length>1){
+alert("Too many layers selected! Select 1 text.")
+}else{
+alert("Error but I dont know")
+}
+
+}
+
+
+//#######################################################
+//#######################################################
+
+var onReadyToExport = function(context) {
+
+    var document = context.document;
+    var selection = context.selection;
+    var first = context.selection.firstObject();
+    var obj = 0;
+    var masters = [];
+    var slicesAdded = [];
+
+    var alert= function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+    addSlice = function(where){
+    var slice = MSSliceLayer.alloc().initWithFrame_(NSMakeRect(0, 0, where.rect().size.width, where.rect().size.height));
+    slice.setName(where.name());
+    where.addLayers_([slice]);
+    slice.exportOptions().setLayerOptions(2);
+    slice.exportOptions().setExportFormats(where.exportOptions().exportFormats());
+    slicesAdded.push(slice);
+    }
+
+    //log(document.pages()[1].children())
+    for(var i=0; i < document.pages().count(); i++){
+        if(document.pages()[i].name() == "Symbols"){
+            var symbolPage = document.pages()[i];
+            for(var j=0; j < symbolPage.children().count(); j++){
+                if(symbolPage.children()[j].class() == "MSSymbolMaster"){
+                    masters.push(symbolPage.children()[j]);
+                }
+            }
+        }
+    }
+
+    for(var i = 0; i < masters.length; i++){
+        if(masters[i].exportOptions().exportFormats().count() > 0){
+            addSlice(masters[i]);
+        }
+    }
+
+    [APSketch duplicateAndDetachAllSymbols];
+
+    for(var i = 0; i < slicesAdded.length; i++){
+        slicesAdded[i].parentObject().removeLayer(slicesAdded[i]);
+    }
+
+};
+
+//#######################################################
+//#######################################################
+
+var onAddSicesAnima = function(context) {
+
+var document = context.document;
+var selection = context.selection;
+var first = context.selection.firstObject();
+var obj = 0;
+var masters = [];
+
+var alert= function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+addSlice = function(where){
+var slice = MSSliceLayer.alloc().initWithFrame_(NSMakeRect(0, 0, where.rect().size.width, where.rect().size.height));
+slice.setName(where.name());
+where.addLayers_([slice]);
+slice.exportOptions().setLayerOptions(2);
+slice.exportOptions().setExportFormats(where.exportOptions().exportFormats());
+}
+
+//log(document.pages()[1].children())
+for(var i=0; i < document.pages().count(); i++){
+if(document.pages()[i].name() == "Symbols"){
+var symbolPage = document.pages()[i];
+for(var j=0; j < symbolPage.children().count(); j++){
+if(symbolPage.children()[j].class() == "MSSymbolMaster"){
+masters.push(symbolPage.children()[j]);
+}
+}
+}
+}
+
+for(var i = 0; i < masters.length; i++){
+if(masters[i].exportOptions().exportFormats().count() > 0){
+log(masters[i]);
+addSlice(masters[i]);
+}
+}
+
+alert( "Slices added!" )
+
+};
+
+//#########################################################
+//#########################################################
+
+var onAutoRenamerIncremental = function(context) {
+
+var names = [];
+var changes = 0;
+var fragment = [];
+var count = 0;
+var document = context.document;
+var alert= function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+stop = function(really){
+    (really)?log('stop!!!!'):log('OK!')
+    stop = !really; 
+}
+
+start = function(){
+log('start!');
+var fullName = [document askForUserInput:'Insert common name' initialValue:'FRAME '];
+for(var i = context.selection.count()-1; i >= 0; i--){
+    I=context.selection.count()-i-1;
+    //fullName = (I<10)?fullName+"0"+(I)+"":fullName+(I);
+    context.selection[i].setName((I<10)?fullName+"0"+(I)+"":fullName+(I));
+}
+
+alert( "Changes Done!" )
+
+}
+
+for(var i = 0; i < context.selection.count(); i++){
+log(context.selection[i].name());
+names.push(context.selection[i].name());
+}
+
+start();
+
+};
+
+//#########################################################
+//#########################################################
+
+var onAutoRenamerSamer = function(context) {
+
+var names = [];
+var changes = 0;
+var fragment = [];
+var count = 0;
+var document = context.document;
+var alert= function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+stop = function(really){
+    (really)?log('stop!!!!'):log('OK!')
+    stop = !really; 
+}
+
+start = function(){
+log('start!');
+var fullName = [document askForUserInput:'Insert common name' initialValue:'Name'];
+if(fullName){
+for(var i = context.selection.count()-1; i >= 0; i--){
+    I=context.selection.count()-i-1;
+    context.selection[i].setName(fullName);
+}
+
+alert( "Changes Done!" );
+
+}else{
+    alert( "No name was given!" );
+}
+
+}
+
+for(var i = 0; i < context.selection.count(); i++){
+log(context.selection[i].name());
+names.push(context.selection[i].name());
+}
+
+start();
+
+log(fullName);
+
+};
+
+//#########################################################
+//#########################################################
+
+var onAutoRenamerSubstituter = function(context) {
+  var names = [];
+var changes = 0;
+var fragment = [];
+var count = 0;
+var document = context.document;
+var string = [document askForUserInput:'WHAT to replace' initialValue:''];
+var replacement = [document askForUserInput:'HOW to replace' initialValue:string];
+var alert= function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+stop = function(really){
+    (really)?log('stop!!!!'):log('OK!')
+    stop = !really; 
+}
+
+start = function(){
+log('start!');
+for(var i = 0; i < context.selection.count(); i++){
+    var fullName = context.selection[i].name();
+    if(fullName.indexOf(string)>-1){
+        changes+=1;
+        fullName = fullName.split(string)[0] + replacement + fullName.split(string)[1];
+        context.selection[i].setName(fullName);
+    }else{
+        //alert('String: \"'+string+'\" could not be found in: \"'+ context.selection[i].name()+'\"');
+    }
+}
+
+alert( (changes) + " changes were made out of " + (context.selection.count()))
+
+}
+
+for(var i = 0; i < context.selection.count(); i++){
+log(context.selection[i].name());
+names.push(context.selection[i].name());
+}
+
+start();
+
+}
+
+//#########################################################
+//#########################################################
+
+var onAutoRenamerAppender = function(context) {
+  var names = [];
+var changes = 0;
+var fragment = [];
+var count = 0;
+var document = context.document;
+var string = [document askForUserInput:'WHAT to append' initialValue:''];
+var alert= function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+stop = function(really){
+    (really)?log('stop!!!!'):log('OK!')
+    stop = !really; 
+}
+
+start = function(){
+log('start!');
+for(var i = 0; i < context.selection.count(); i++){
+    var fullName = context.selection[i].name();
+        changes+=1;
+        fullName = fullName + string;
+        context.selection[i].setName(fullName);
+}
+
+alert( (changes) + " changes were made out of " + (context.selection.count()))
+
+}
+
+for(var i = 0; i < context.selection.count(); i++){
+log(context.selection[i].name());
+names.push(context.selection[i].name());
+}
+
+if(string){
+start();
+}else{
+    alert('No name provided');
+}
+
+};
+
+//#########################################################
+//#########################################################
+
+var onAddPrefix = function(context) {
+  var names = [];
+var changes = 0;
+var fragment = [];
+var count = 0;
+var document = context.document;
+var string = [document askForUserInput:'WHAT to append' initialValue:''];
+var alert= function(msg) {
+        var app = [NSApplication sharedApplication];
+        [app displayDialog:msg];
+    }
+
+stop = function(really){
+    (really)?log('stop!!!!'):log('OK!')
+    stop = !really; 
+}
+
+start = function(){
+log('start!');
+for(var i = 0; i < context.selection.count(); i++){
+    var fullName = context.selection[i].name();
+        changes+=1;
+        fullName = string + fullName;
+        context.selection[i].setName(fullName);
+}
+
+alert( (changes) + " changes were made out of " + (context.selection.count()))
+
+}
+
+for(var i = 0; i < context.selection.count(); i++){
+log(context.selection[i].name());
+names.push(context.selection[i].name());
+}
+
+if(string){
+start();
+}else{
+    alert('No name provided');
+}
+
+};
+
+//#########################################################
+//#########################################################
+
+var onRunWhite = function(context,color) {onRunSwapColor(context,'white');
+}
+
+var onRunBlack = function(context,color) {onRunSwapColor(context,'black');
+}
+
+var onRunCustom = function(context,color) {onRunSwapColor(context,'custom');
+}
+
+var onRunSwapColor = function(context,color) {
+  
+var doc = context.document;
+var page = [doc currentPage];
+var shape = page.layers().objectAtIndex(0)
+
+var palette = {
+    black : '#000000', //black
+    white : '#ffffff' //white
+};
+
+var fillWhite = function(c) {
+    colorFill(c, palette.white);
+};
+var fillBlack = function(c) {
+    colorFill(c, palette.black);
+};
+
+var borderWhite = function(c) {
+    colorBorder(c, palette.white);
+};
+var borderBlack = function(c) {
+    colorBorder(c, palette.black);
+};
+
+var fillCustom = function(c) {
+    colorFill(c, palette.custom);
+};
+
+var borderCustom = function(c) {
+    colorBorder(c, palette.custom);
+};
+
+
+function hexToRgba(hex) {
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+
+        if (result) {
+            result = {
+                r : parseInt(result[1], 16)/255,
+                g : parseInt(result[2], 16)/255,
+                b : parseInt(result[3], 16)/255,
+                a : 1
+            };
+        } else {
+            result = null;
+        }
+
+        return result;
+}
+
+
+function colorBorder(cont,color){
+   var selection = cont.selection;
+
+    //iterate layers
+    for(var i=0; i<selection.count(); i++){
+        var layer = selection[i];
+
+        if (layer.class() === MSShapeGroup) {
+           var layer = selection[i];  
+           var styles = layer.style();
+           var border = styles.borders().firstObject();
+           if(border!=null){border.color = MSColor.colorWithRed_green_blue_alpha(hexToRgba(color).r, hexToRgba(color).g, hexToRgba(color).b, hexToRgba(color).a)};
+        }
+    }
+}
+
+function colorFill(cont,color){
+    var selection = cont.selection;
+    
+    //iterate layers
+    for(var i=0; i<selection.count(); i++){
+        var layer = selection[i];
+
+        if (layer.class() === MSTextLayer) {
+            layer.textColor = MSColor.colorWithRed_green_blue_alpha(hexToRgba(color).r, hexToRgba(color).g, hexToRgba(color).b, hexToRgba(color).a);
+        }
+        if (layer.class() === MSShapeGroup) {
+
+            //get layer style
+            var shapeStyle = layer.style();
+
+            //get layer style fills array
+            var fills = shapeStyle.fills();
+            
+            var fill = null;
+            if(fills.count() > 0 ){ 
+                //get first fill layer style
+                fill = fills.firstObject();
+            }
+
+            
+            //set color to first fill layer style
+            
+            if(fill!=null){fill.color = MSColor.colorWithRed_green_blue_alpha(hexToRgba(color).r, hexToRgba(color).g, hexToRgba(color).b, hexToRgba(color).a)};
+
+            log(fills.firstObject());
+       }
+    }
+}
+
+function black(context){
+    fillBlack(context); 
+    borderBlack(context);
+}
+
+function white(context){
+    fillWhite(context); 
+    borderWhite(context);
+}
+
+function custom(context){
+    palette.custom = [doc askForUserInput:'Enter a prefix #color' initialValue:'#ffffff'];
+    fillCustom(context); 
+    borderCustom(context);
+}
+
+
+switch(color) {
+    case 'white':
+        white(context)
+        break;
+    case 'black':
+        black(context)
+        break;
+    default:
+        custom(context)
+} 
+
+};
