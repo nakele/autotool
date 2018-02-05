@@ -155,13 +155,13 @@
       "com.bohemiancoding.sketch.runscriptidentifier14",
       "com.bohemiancoding.sketch.runscriptidentifier15"
     ],
-    "title" : "Sketch Bulk Tools"
+    "title" : "Bulk Tools for Sketch"
   },
   "identifier" : "com.fed.autotool",
-  "version" : "1.7",
+  "version" : "2.0",
   "description" : "Tool to [BULK AUTORENAME] && [BULK REPLACE TEXT], [READY TO EXPORT] before Anima, [SELECTION] and [COLOR SWAP]",
   "authorEmail" : "federico.fala@gmail.com",
   "appcast": "https://raw.githubusercontent.com/nakele/autotool/master/appcast.xml",
   "homepage": "https://github.com/nakele/autotool",
-  "name" : "Sketch Bulk Tools"
+  "name" : "Bulk Tools for Sketch"
 }
