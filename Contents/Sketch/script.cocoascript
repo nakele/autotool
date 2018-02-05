@@ -2,6 +2,7 @@ function initiate(context){
 
 document = context.document;
 artboards = document.artboards();
+pages = document.pages();
 selection = context.selection;
 json = {};
 LOG = function(a){
@@ -15,8 +16,8 @@ alert = function(msg) {
     }
 
 //make a list of all the layers from the current page
-children = []
-for(var i=0; i<artboards.length; i++){for(var n=0;n<artboards[i].children().length;n++){children.push(artboards[i].children()[n])}}
+children = document.currentPage().children();
+//for(var i=0; i<pages.length; i++){for(var n=0;n<pages[i].children().length;n++){children.push(pages[i].children()[n])}}
 
 //find all the layers in the current page that match the given value
 findSameValueTextLayer_text = function(text){
@@ -612,6 +613,7 @@ var selectSameSymbolInstances = function(context) {
 
 var document = context.document
 var artboards = document.artboards()
+var pages = document.pages()
 
 var alert= function(msg) {
         var app = [NSApplication sharedApplication];
@@ -619,8 +621,8 @@ var alert= function(msg) {
     }
 
 //make a list of all the layers from the current page
-var children = []
-for(var i=0; i<artboards.length; i++){for(var n=0;n<artboards[i].children().length;n++){children.push(artboards[i].children()[n])}}
+var children = document.currentPage().children();
+//for(var i=0; i<pages.length; i++){for(var n=0;n<pages[i].children().length;n++){children.push(pages[i].children()[n])}}
 
 //find all the layers in the current page that are from the same symbol instance
 function findSameMasterInstanceLayers(layer){
@@ -657,6 +659,7 @@ var sameValueTextLayers = function(context) {
 
 var document = context.document
 var artboards = document.artboards()
+var pages = document.pages()
 
 var alert= function(msg) {
         var app = [NSApplication sharedApplication];
@@ -664,8 +667,8 @@ var alert= function(msg) {
     }
 
 //make a list of all the layers from the current page
-var children = []
-for(var i=0; i<artboards.length; i++){for(var n=0;n<artboards[i].children().length;n++){children.push(artboards[i].children()[n])}}
+var children = document.currentPage().children();
+//for(var i=0; i<pages.length; i++){for(var n=0;n<pages[i].children().length;n++){children.push(pages[i].children()[n])}}
 
 //find all the layers in the current page that are key/value
 function findSameValueTextLayer (layer){

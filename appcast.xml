@@ -6,26 +6,26 @@
     <description>Bulk do something in Sketch like bulk change text everywhere</description>
 	<language>en</language>
     <item>
+      <title>Version 2.1</title>
+      <description>
+        <![CDATA[
+          <ul>
+            <li>Early beta for Sketch v48, small fixes for currentPage()</li>
+          </ul>
+        ]]>
+      </description>
+      <enclosure url="https://github.com/nakele/autotool/archive/master.zip" sparkle:version="2.1" type="application/octet-stream" />
+    </item>
+    <item>
     	<title>Version 2.0</title>
       <description>
         <![CDATA[
           <ul>
-            <li>Early beta for Sketch v48</li>
+            <li>Early beta for Sketch v48, first release</li>
           </ul>
         ]]>
       </description>
-      <enclosure url="https://github.com/nakele/autotool/archive/master.zip" sparkle:version="2.0" type="application/octet-stream" />
-    </item>
-    <item>
-      <title>Version 1.7</title>
-      <description>
-        <![CDATA[
-          <ul>
-            <li>Early beta for Sketch v48</li>
-          </ul>
-        ]]>
-      </description>
-      <enclosure url="https://github.com/nakele/autotool/archive/master.zip" sparkle:version="1.7" type="application/octet-stream" />
+      <enclosure url="https://github.com/nakele/autotool/tree/2.0.zip" sparkle:version="2.0" type="application/octet-stream" />
     </item>
   </channel>
 </rss>
