@@ -155,11 +155,13 @@
       "com.bohemiancoding.sketch.runscriptidentifier14",
       "com.bohemiancoding.sketch.runscriptidentifier15"
     ],
-    "title" : "Fed Magic Tools"
+    "title" : "Sketch Bulk Tools"
   },
-  "identifier" : "com.example.sketch.autotool",
+  "identifier" : "com.fed.autotool",
   "version" : "1.7",
   "description" : "Tool to [BULK AUTORENAME] && [BULK REPLACE TEXT], [READY TO EXPORT] before Anima, [SELECTION] and [COLOR SWAP]",
   "authorEmail" : "federico.fala@gmail.com",
-  "name" : "Fed Magic Tools"
+  "appcast": "https://raw.githubusercontent.com/utom/sketch-measure/master/appcast.xml",
+  "homepage": "https://github.com/nakele/autotool",
+  "name" : "Sketch Bulk Tools"
 }
