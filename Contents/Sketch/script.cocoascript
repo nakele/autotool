@@ -9,6 +9,57 @@ LOG = function(a){
     //log(a);
 }
 
+//helper for dialog
+getAlertWindow = function() {
+    var alert = COSAlertWindow.new();
+    return alert;
+}
+
+fakeFunc = function() {
+    og("Fake func");
+}
+
+//define a dialog
+newAlert = function(title){
+var settingsWindow = getAlertWindow();
+settingsWindow.setMessageText((title)?title:"Title");
+return settingsWindow
+}
+
+//add a button to dialog
+addButton = function(alert,string,fn){
+    alert.addButtonWithTitle((string)?string:"Ok");
+}
+
+//add radial to dialog
+addRadial = function(alert,string,fn){
+    var pageButton = NSButton.alloc().initWithFrame(NSMakeRect(0,0,300,22));
+    pageButton.setTitle((string)?string:"Label");
+    pageButton.setButtonType(NSRadioButton);
+    pageButton.setAction(fn);
+    alert.addAccessoryView(pageButton);
+    return pageButton;
+}
+
+//add checkbox to dialog
+addCheckBox = function(alert,string,fn){
+    var showsWarningCheckbox = NSButton.alloc().initWithFrame(NSMakeRect(0,0,300,22));
+        showsWarningCheckbox.setButtonType(NSSwitchButton);
+        showsWarningCheckbox.setBezelStyle(0);
+        showsWarningCheckbox.setTitle((string)?string:"Label");
+        showsWarningCheckbox.setState(NSOffState);
+        alert.addAccessoryView(showsWarningCheckbox);
+        return showsWarningCheckbox;
+}
+
+//call dialog
+runAlert = function(alert){
+    return alert.runModal();
+}
+
+//fake function
+fn = function(){log("log")}
+
 //define a popup handler
 alert = function(msg) {
         var app = [NSApplication sharedApplication];
@@ -765,14 +816,18 @@ var onAddSicesAnima = function(context) {
 
 var document = context.document;
 var selection = context.selection;
-var first = context.selection.firstObject();
 var obj = 0;
 var masters = [];
 
-var alert= function(msg) {
-        var app = [NSApplication sharedApplication];
-        [app displayDialog:msg];
-    }
+initiate(context);
+
+var myalert = newAlert("Add Slices before export")
+addButton(myalert,"Save",fn)
+addButton(myalert,"Cancel",fn)
+//addRadial(myalert,"Options",fn)
+checkbox = addCheckBox(myalert,"Remove export options from Symbol",fn)
+
+
 
 addSlice = function(where){
 var slice = MSSliceLayer.alloc().initWithFrame_(NSMakeRect(0, 0, where.rect().size.width, where.rect().size.height));
@@ -780,7 +835,14 @@ slice.setName(where.name());
 where.addLayers_([slice]);
 slice.exportOptions().setLayerOptions(2);
 slice.exportOptions().setExportFormats(where.exportOptions().exportFormats());
+
+if(checkbox.state() == 0 ? 0 : 1){
+where.exportOptions().setExportFormats([]);
 }
+
+}
+
+var runThis = function(){
 
 //log(document.pages()[1].children())
 for(var i=0; i < document.pages().count(); i++){
@@ -794,14 +856,28 @@ masters.push(symbolPage.children()[j]);
 }
 }
 
+var number = 0
+
 for(var i = 0; i < masters.length; i++){
 if(masters[i].exportOptions().exportFormats().count() > 0){
 log(masters[i]);
 addSlice(masters[i]);
+number = i+1;
 }
 }
 
-alert( "Slices added!" )
+number = number+" slices added!"
+
+
+
+alert( (i==0)?"No slices added":number )
+}
+
+response = (1001-runAlert(myalert)>0)?true:false
+
+if(response){
+    runThis();
+}
 
 };
 

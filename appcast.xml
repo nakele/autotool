@@ -6,6 +6,17 @@
     <description>Bulk do something in Sketch like bulk change text everywhere</description>
 	<language>en</language>
     <item>
+      <title>Version 2.2</title>
+      <description>
+        <![CDATA[
+          <ul>
+            <li>Early beta for Sketch v48, added option when using AddSlices</li>
+          </ul>
+        ]]>
+      </description>
+      <enclosure url="https://github.com/nakele/autotool/archive/master.zip" sparkle:version="2.2" type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 2.1</title>
       <description>
         <![CDATA[
@@ -14,7 +25,7 @@
           </ul>
         ]]>
       </description>
-      <enclosure url="https://github.com/nakele/autotool/archive/master.zip" sparkle:version="2.1" type="application/octet-stream" />
+      <enclosure url="https://github.com/nakele/autotool/tree/2.1.zip" sparkle:version="2.1" type="application/octet-stream" />
     </item>
     <item>
     	<title>Version 2.0</title>
