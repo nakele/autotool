@@ -862,7 +862,7 @@ for(var i = 0; i < masters.length; i++){
 if(masters[i].exportOptions().exportFormats().count() > 0){
 log(masters[i]);
 addSlice(masters[i]);
-number = i+1;
+number+=1;
 }
 }
 
