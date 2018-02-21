@@ -405,11 +405,18 @@ LOG("PATH: "+path);
             obj = builder(obj,path+"symbolID.",layers[i].symbolID()).obj;
             var obj_overrides_merge = path.split(".")[path.split(".").length-2];
             LOG(">>> END and Merge Overrides for: "+path); LOG(obj_overrides_merge);
-            LOG(findById(obj_overrides_merge))
-            LOG(">>> Overrides:")
-            LOG(findById(obj_overrides_merge).overrides())
-            LOG("**## RUN MERGE FN ##**")
-            merge(findById(obj_overrides_merge).overrides(),obj_overrides_merge+".")
+
+            var found = findById(obj_overrides_merge);
+            if(found){
+                LOG(findById(obj_overrides_merge))
+                LOG(">>> Overrides:")
+                LOG(findById(obj_overrides_merge).overrides())
+                LOG("**## RUN MERGE FN ##**")
+                merge(findById(obj_overrides_merge).overrides(),obj_overrides_merge+".")
+            }else{
+                LOG("@@@@@@ ERROR: findById(obj_overrides_merge) is UNDEFINED")
+            }
+
         }
         
         //path = path.split(layers[i].objectID()+"")[0];
