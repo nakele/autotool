@@ -394,7 +394,7 @@ if(layers[i].className().isEqualToString('MSSymbolInstance')&&layers[i].isVisibl
     //path = path.split(layers[i].objectID()+"")[0];
 }
 LOG("PATH: "+path);
-    if(i==layers.length-1){
+    if(i==layers.length-1&&!layers[i].className().isEqualToString('MSShapePathLayer')){
         var number = 0;
         for(var symbolIDKey in layers[i]){
             number++
