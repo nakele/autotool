@@ -32,3 +32,5 @@ It allows you to automatically do some bulk operations in Sketch like:
 ### Add a slice to all your exportable
 14. Duplicate your document and add slices to all your exportable symbols and breaks all your symbols
 15. Add slices to all your exportable symbols
+
+#### Updated to work with Sketch 49.2
