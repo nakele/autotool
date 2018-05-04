@@ -66,9 +66,77 @@ alert = function(msg) {
         [app displayDialog:msg];
     }
 
+//pass a string and it will replace shash with dot everywhere
+//then return back that string
+replace_slash = function(input){
+    if(input.indexOf("/")>-1){
+    input = input.toString().replace("/", ".");
+    return replace_slash(input)
+    }else{
+    return input
+    }
+}
+
+//function to check if item is the end of a branch of an object {}
+end = function(item){
+    for(var someotherkey in item){
+        if(typeof item != "string" && typeof item != "number"){return false}
+    };
+    return true;
+}
+
+//build json, it needs: 
+//the obj which is the json
+//path in the shape of xxx.yyy.zzz
+//value to assign to that path
+JSONbuilder = function (obj, path, value){ LOG("BUILDER_PATH: "+path); LOG("BUILDER_VALUE: "+value);
+var pointer = obj;
+var path = path.split(".");
+//log(path)
+for(var i=0; i<path.length; i++){
+if(typeof pointer[path[i]+""] == "undefined"&&i<path.length-1){
+    pointer[path[i]+""]={}; pointer = pointer[path[i]+""];
+}else if(typeof pointer[path[i]+""] == "undefined" || typeof pointer[path[i]+""] == "string" || typeof pointer[path[i]+""] == "number"){
+    LOG("change it with: "+value)
+    pointer[path[i]+""]=value+"";
+}else{
+    pointer = pointer[path[i]+""];
+};
+}
+return {"obj":obj,"pointer":pointer};
+}
+
+//iterate a symbol overridePoints
+//find out what's their current value at each point
+//build that into a json JSONbuilder
+buildSymbolView = function(array,json_view){
+    if(array==null){return}
+    if(json_view==undefined){var json_view = {}}
+    for(var i = 0; i < array.length; i++){
+        var block = array[i].overridePoint().toString().split("_");
+        if(block[1]=="stringValue"){
+        //log("STRING")
+        LOG(block[0]+" : "+array[i].currentValue());
+        var path = replace_slash(block[0])
+        JSONbuilder(json_view,path,array[i].currentValue().toString())
+        }else if(block[1]=="image"){
+        LOG(block[0]+" : "+array[i].currentValue());
+        var path = replace_slash(block[0])
+        JSONbuilder(json_view,path,array[i].currentValue().toString())
+        }else if(block[1]=="symbolID"){
+        //log("SYMBOL")
+        LOG(block[0]+" : {symbolID:"+array[i].currentValue()+"}")
+        var path = replace_slash(block[0])
+        JSONbuilder(json_view,path+".symbolID",array[i].currentValue().toString())
+        buildSymbolView(array[i].internalChildren(),json_view)
+        }
+    }
+return json_view
+}
+
 //make a list of all the layers from the current page
 children = document.currentPage().children();
-//for(var i=0; i<pages.length; i++){for(var n=0;n<pages[i].children().length;n++){children.push(pages[i].children()[n])}}
+
 
 //find all the layers in the current page that match the given value
 findSameValueTextLayer_text = function(text){
@@ -81,6 +149,17 @@ for(var i=0; i<children.length; i++){
         if(a == b){LOG("true");
             list.push(children[i]);
         };
+    }
+};
+return list;
+}
+
+//find all the layers in the current page that are text
+findTextLayers = function(){
+var list = [];
+for(var i=0; i<children.length; i++){
+    if(children[i].className().isEqualToString('MSTextLayer')){
+            list.push(children[i]);
     }
 };
 return list;
@@ -102,232 +181,71 @@ applyNewValueToTextLayers = function(text_layers){
     }
 }
 
-//find all the layers in the current page that are text
-findTextLayers = function(){
-var list = [];
-for(var i=0; i<children.length; i++){
-    if(children[i].className().isEqualToString('MSTextLayer')){
-            list.push(children[i]);
-    }
-};
-return list;
-}
 
-//function to check if item is the end of a branch of an object
-end = function(item){
-    for(var someotherkey in item){
-        if(typeof item != "string" && typeof item != "number"){return false}
-    };
-    return true;
-}
-
-//map object to name rather than numbers
-map = function(){
-var path = "";
-var altPath = "";
-var map = {};
-
-function iter(obj){
-    for(var key in obj){
-        var KEY = (typeof findById(key+"") == "undefined")?key:findById(key+"").name();
-        path+=KEY+".";
-        altPath+=key+".";
-        if(end(obj[key])){
-            builder(map,path,obj[key]);
-        }else{
-            iter(obj[key])
-        }
-        altPath = altPath.split(key)[0]
-        path = path.slice(0,path.lastIndexOf(KEY+"."));
-    }
-}
-
-iter(some);
-return map;
-}
-
-//OBJ builder like a json
-builder = function(obj, path, value){ LOG("BUILDER: "+path);
-var pointer = obj;
-var path = path.split(".");
-for(var i=0; i<path.length-1; i++){
-if(typeof pointer[path[i]+""] == "undefined"&&i<path.length-2){
-    pointer[path[i]+""]={}; pointer = pointer[path[i]+""];
-}else if(typeof pointer[path[i]+""] == "undefined" || typeof pointer[path[i]+""] == "string" || typeof pointer[path[i]+""] == "number"){
-    LOG("change it with: "+value)
-    pointer[path[i]+""]=value+"";
-}else{
-    pointer = pointer[path[i]+""];
-};
-}
-return {"obj":obj,"pointer":pointer};
-}
-
-//find the last element, the actual key/value of a symbol
-iterate = function(item,N,listElem){
-if(typeof N == null || typeof N == "undefined"){LOG("N is undefined"); var N = 0};N++
-if(typeof listElem == null || typeof listElem == "undefined"){LOG("listElem is undefined"); var listElem = []};
-for(key in item){LOG("LEVEL"+N+" ###############");
-LOG("Key: "+key+" and Value: "+ item[key]);
-//if(end(item[key])){var obj = findById(""+key); listElem[obj.name()+""] = {"value":""+item[key],"id":key+"", "key": obj.name()+""}};
-if(end(item[key])){listElem.push(""+item[key])};
-iterate(item[key],N,listElem);
-};
-N--
-if(N==0){return listElem};
-}
-
-//clean up object
-cleanUpInstance = function(symbol){
-var selector = symbol.objectID();
-function cleanUpInstanceIterate(symbol,item,N,listElem,selector,path){//LOG("Selector= "+selector);
-if(typeof N == null || typeof N == "undefined"){LOG("N is undefined"); var N = 0};N++
-if(typeof listElem == null || typeof listElem == "undefined"){LOG("listElem is undefined"); var listElem = []};
-if(typeof path == null || typeof path == 'undefined'){var path=""};
-for(var key in item){LOG("LEVEL"+N+" ###############");
-LOG("Key: "+key+" and Value: "+ item[key]);
-path+=key+".";
-
-//LOG(key+""=="symbolID");
-
-if((typeof item["symbolID"] != "undefined" || typeof item["symbolID"] != null) && key+""!="symbolID" && item["symbolID"] != 'null' && item["symbolID"] != '' && item["symbolID"] != null && !isIDPartOfSymbol(key+"",findById(item["symbolID"]+""),"0")){
-    LOG("¢¢¢ layerID detected ¢¢¢ "+item['symbolID']);
-    LOG("***DELETE: "+path);
-    isIDPartOfSymbol(key+"",findById(item["symbolID"]+""),"1");
-    overrideSymbolByPath(symbol,""+path,"_","delete");
-}else if((typeof item["symbolID"] != "undefined" || typeof item["symbolID"] != null) && key+""=="symbolID" && item["symbolID"] != 'null' && item["symbolID"] != null){
-    //if key == "symbolID"
-    LOG("¢¢¢ layerID detected ¢¢¢ "+item['symbolID']+" but not deleting because key= "+key);
-}else if((typeof item["symbolID"] != "undefined" || typeof item["symbolID"] != null) && key+""!="symbolID" && item["symbolID"] != 'null' && item["symbolID"] != null && item["symbolID"] != "" && isIDPartOfSymbol(key+"",findById(item["symbolID"]+""),"2")){
-    LOG("¢¢¢ layerID detected ¢¢¢ "+item['symbolID']+" but not deleting because key= "+key+" is an instance of Master");
-}else if(typeof findById(""+key) == 'undefined' || !isIDPartOfSymbol(key,selector,"3")){
-    LOG("***DELETE: "+path); 
-    overrideSymbolByPath(symbol,""+path,"_","delete");
-}else if(false){
-    cleanUpInstanceIterate(symbol,item[key],N,listElem,key,path);
-}
-
-path = path.split(key+".")[0];
-};
-N--
-if(N==0){return listElem};
-}
-return cleanUpInstanceIterate(symbol,symbol.overrides(),null,null,selector)
-}
-
-//overrideSymbol
-overrideSymbol = function(symbol,key,value,action){
-var prop = {};
-var overrides = symbol.overrides();
-function iterateOverrides(prop,overrides,exception){
-for(KEY in overrides){LOG("Exception: "+exception+" KEY: "+KEY);
-if(""+exception!=KEY+""){
-if(end(overrides[""+KEY])){
-    prop[""+KEY] = overrides[""+KEY]
-}else{
-    if(typeof prop[""+KEY]=='undefined'){prop[""+KEY] = {}}; iterateOverrides(prop[""+KEY],overrides[""+KEY],exception);
-}
-}
-}
-};
-
-iterateOverrides(prop,overrides); 
-LOG("The final PROP is"); LOG(prop);
-
-if(action){LOG("DELETE ACTION");
-PROP = {};
-//for(KEY in prop){if(""+key!=KEY+""){PROP[""+KEY] = prop[""+KEY]}};
-iterateOverrides(PROP,prop,key);
-prop = PROP;
-}else{LOG("EDIT ACTION");prop[""+key] = ""+value;};
-
-LOG(prop);
-symbol.setOverrides(prop);
-}
 
 //overrideSymbol2
 overrideSymbolByPath = function(symbol,key,value,action){
-var prop = {};
-var overrides = symbol.overrides();
 
-function builderz(obj, path, value){ LOG("BUILDER: "+path);
-var pointer = obj;
-var path = path.split(".");
-for(var i=0; i<path.length-1; i++){
-if(typeof pointer[path[i]+""] == "undefined"&&i<path.length-2){
-    pointer[path[i]+""]={}; pointer = pointer[path[i]+""];
-}else if(typeof pointer[path[i]+""] == "undefined" || typeof pointer[path[i]+""] == "string" || typeof pointer[path[i]+""] == "number"){
-    LOG("change it with: "+value)
-    pointer[path[i]+""]=value+"";
-}else{
-    pointer = pointer[path[i]+""];
-};
-}
-return {"obj":obj,"pointer":pointer};
-}
+    var prop = {}
 
-function iterateOverrides(prop,overrides,exception,path){
-if(typeof path == 'undefined'){var path=""};
-for(var KEY in overrides){//LOG("Exception: "+exception+" KEY: "+KEY); 
-    path+=KEY+".";
-        if(""+path == exception+""){LOG("Found matching Path: "+path)}
-        if(!path.indexOf(""+exception)==0){
-            LOG("KEY="+KEY); 
-            //end(overrides[""+KEY]);
-            if(end(overrides[KEY])){
-                if(""+exception!=path+""){
-                    var temp_prop = builderz(prop, path, overrides[""+KEY]);
-                }
-            }else{
-                iterateOverrides(prop,overrides[""+KEY],exception,path);
-            }
-        }
-    path = path.split(KEY+".")[0]
-}
-};
+    var overrides = buildSymbolView(symbol.availableOverrides())
 
-iterateOverrides(prop,overrides); 
-LOG("The final PROP is"); LOG(prop);
+    //-------
 
-if(action){LOG("DELETE ACTION");
-PROP = {};
-iterateOverrides(PROP,prop,key);
-prop = PROP;
-}else{LOG("EDIT ACTION");
-PROP = prop;
-builderz(PROP,key,value);
-prop = PROP;
-};
-LOG("Proccessed prop =")
-LOG(prop);
-symbol.setOverrides(prop);
-}
 
-//check if a layer is a part of a master
-isIDPartOfSymbol = function(ID,master,value){
-    LOG("Checking If ID: "+ID+" is part of Master ID: "+master);
-    if(typeof master == "undefined"){log("MASTER UNDEFINED "+value)};
-    if(typeof master == "string" || master.className() == "__NSCFString"){
-    master = findById(master);
-    };
-    if(master){master = findLayersInSymbol(master);}else{return false};
-    for(var i=0; i<master.length; i++){
-        if(ID+"" == master[i].objectID()+""){return true}
-    };
-    return false;
-}
-
-//find Master Symbol Children
-findLayersInSymbol = function(symbol){
-    if(symbol.className().isEqualToString('MSSymbolInstance')){
-        //LOG("Return INSTANCE")
-        return symbol.symbolMaster().children()
-    }else if(symbol.className().isEqualToString('MSSymbolMaster')){  
-        //LOG("Return MASTER")
-        return symbol.children();
+    function builderz(obj, path, value){ LOG("BUILDER: "+path);
+    var pointer = obj;
+    var path = path.split(".");
+    for(var i=0; i<path.length-1; i++){
+    if(typeof pointer[path[i]+""] == "undefined"&&i<path.length-2){
+        pointer[path[i]+""]={}; pointer = pointer[path[i]+""];
+    }else if(typeof pointer[path[i]+""] == "undefined" || typeof pointer[path[i]+""] == "string" || typeof pointer[path[i]+""] == "number"){
+        LOG("change it with: "+value)
+        pointer[path[i]+""]=value+"";
     }else{
-        return false;
+        pointer = pointer[path[i]+""];
+    };
     }
+    return {"obj":obj,"pointer":pointer};
+    }
+
+    function iterateOverrides(prop,overrides,exception,path){
+    if(typeof path == 'undefined'){var path=""};
+    for(var KEY in overrides){//LOG("Exception: "+exception+" KEY: "+KEY); 
+        path+=KEY+".";
+            if(""+path == exception+""){LOG("Found matching Path: "+path)}
+            if(!path.indexOf(""+exception)==0){
+                LOG("KEY="+KEY); 
+                //end(overrides[""+KEY]);
+                if(end(overrides[KEY])){
+                    if(""+exception!=path+""){
+                        var temp_prop = builderz(prop, path, overrides[""+KEY]);
+                    }
+                }else{
+                    iterateOverrides(prop,overrides[""+KEY],exception,path);
+                }
+            }
+        path = path.split(KEY+".")[0]
+    }
+    };
+
+    //-------
+
+    iterateOverrides(prop,overrides); 
+    LOG("The final PROP is"); LOG(prop);
+
+    if(action){LOG("DELETE ACTION");
+    PROP = {};
+    iterateOverrides(PROP,prop,key);
+    prop = PROP;
+    }else{LOG("EDIT ACTION");
+    PROP = prop;
+    builderz(PROP,key,value);
+    prop = PROP;
+    };
+    LOG("Proccessed prop =")
+    LOG(prop);
+    symbol.setOverrides(prop);
 }
 
 //find layer by ID
@@ -358,84 +276,12 @@ findById = function(id){
 }
 //*/
 
-//build view from Master Symbol
-buildSymbolView = function(symbol){
-var obj = {};
-var overrides = symbol.overrides();
-//give overrides from a symbol, merges them with JSON, need to pass a path.
-function merge(overrides,path){ LOG("#### Merging overrides: "); LOG(overrides);
-    if(typeof path == null || typeof path == "undefined"){LOG("path build is undefined"); var path=""};
-    LOG("MERGE PATH:"+path);
-    for(var KEY in overrides){
-        path+=KEY+".";
-        merge(overrides[KEY],path);
-        builder(obj,path,overrides[KEY]);
-        path = path.split(KEY+"")[0];
-    }
-}
-
-function iterate(symbol,path){
-if(typeof path == null || typeof path == "undefined"){LOG("path is undefined"); var path=""};
-var layers = findLayersInSymbol(symbol);
-for(var i=0;i<layers.length;i++){
-if(layers[i].className().isEqualToString('MSSymbolInstance')&&layers[i].isVisible()&&!layers[i].isLocked()){LOG("found INSTANCE")
-    LOG(layers[i])
-    path+=layers[i].objectID()+".";
-    iterate(layers[i],path);
-    obj = builder(obj,path).obj;
-    path = path.split(layers[i].objectID()+"")[0];
-}else if(layers[i].className().isEqualToString('MSTextLayer')&&layers[i].isVisible()&&!layers[i].isLocked()){LOG("found TEXT")
-    path+=layers[i].objectID()+".";
-    obj = builder(obj,path,layers[i].stringValue()+"").obj;
-    path = path.split(layers[i].objectID()+"")[0];
-}else if(i+"" == "stringID" ){ //&& findById(layers[i])+"" != findById(path.split(".")[0]+"").symbolMaster()+""
-    //path+="stringID.";
-    obj = builder(obj,path+"symbolID.",layers[i]).obj;
-    //path = path.split(layers[i].objectID()+"")[0];
-}
-LOG("PATH: "+path);
-    if(i==layers.length-1&&!layers[i].className().isEqualToString('MSShapePathLayer')){
-        var number = 0;
-        for(var symbolIDKey in layers[i]){
-            number++
-        }
-        LOG("NUMBER= "+number+" in "+layers[i]+" for "+ symbolIDKey);
-        //path+=layers[i].objectID()+".";
-        if(number<1 && path != ""){LOG("GO++++")
-            obj = builder(obj,path+"symbolID.",layers[i].symbolID()).obj;
-            var obj_overrides_merge = path.split(".")[path.split(".").length-2];
-            LOG(">>> END and Merge Overrides for: "+path); LOG(obj_overrides_merge);
-
-            var found = findById(obj_overrides_merge);
-            if(found){
-                LOG(findById(obj_overrides_merge))
-                LOG(">>> Overrides:")
-                LOG(findById(obj_overrides_merge).overrides())
-                LOG("**## RUN MERGE FN ##**")
-                merge(findById(obj_overrides_merge).overrides(),obj_overrides_merge+".")
-            }else{
-                LOG("@@@@@@ ERROR: findById(obj_overrides_merge) is UNDEFINED")
-            }
-
-        }
-        
-        //path = path.split(layers[i].objectID()+"")[0];
-    }
-}
-}
-iterate(symbol);
-LOG("**## RUN MERGE FN ##**")
-merge(overrides)
-return obj;
-}
-
-
 
 //delete key
-deleteKey = function(symbol,key){overrideSymbolByPath(symbol,key,"_","delete");}
-editKey = function(symbol,key,value){overrideSymbolByPath(symbol,key,value);}
+deleteKey=function(symbol,key){overrideSymbolByPath(symbol,key,"_","delete");}
+editKey=function(symbol,key,value){overrideSymbolByPath(symbol,key,value);}
 
-iterateSymbolsAndDoSomething = function(select,fn){
+iterateSymbolsAndDoSomething=function(select,fn){
     for(var i = 0; i < select.length; i++){
         if(select[i].className().isEqualToString('MSSymbolInstance')){
             LOG("Iterate"+select[i])
@@ -444,25 +290,21 @@ iterateSymbolsAndDoSomething = function(select,fn){
     }
 }
 
-cleanSymbolsInCurrentPage = function(){
-    iterateSymbolsAndDoSomething(document.currentPage().children(),cleanUpInstance);
-}
-
-jsonSymbolsInCurrentPage = function(){
+jsonSymbolsInCurrentPage=function(){
     iterateSymbolsAndDoSomething(document.currentPage().children(),buildjson_json);
 }
 
-buildjson_json = function(symbol){
+buildjson_json=function(symbol){
     json = buildjson(symbol,json)
 }
 
-buildjson = function(symbol,json){
+buildjson=function(symbol,json){
     if(typeof json == "undefined"){var json = {};};
-    json[symbol.objectID()+""]=buildSymbolView(symbol);
+    json[symbol.objectID()+""]=buildSymbolView(symbol.availableOverrides());
     return json;
 }
 
-matchFromJson = function(jsonImported){
+matchFromJson=function(jsonImported){
     for(var layer in jsonImported){
         _layer = findById(layer+"");
         if(typeof _layer != "undefined" && _layer!="undefined" && _layer.className().isEqualToString('MSSymbolInstance')){
@@ -473,7 +315,7 @@ matchFromJson = function(jsonImported){
 
 
 
-saveToJson = function(){
+saveToJson=function(){
 
 json = {};
 
@@ -502,14 +344,44 @@ if (save.runModal()) {
     var filePath = save.URL().path();
     var file = NSString.stringWithString(JSON.stringify(combined_json));
         
-    file.writeToFile_atomically_encoding_error(filePath, true, NSUTF8StringEncoding, null);
+    //file.writeToFile_atomically_encoding_error(filePath, true, NSUTF8StringEncoding, null);
+    saveJsonToFile(combined_json, filePath)
 
 }   
 }
 
+var stringify = function(obj, prettyPrinted) {
+    var prettySetting = prettyPrinted ? NSJSONWritingPrettyPrinted : 0,
+    jsonData = [NSJSONSerialization dataWithJSONObject:obj options:prettySetting error:nil];
+    return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+}
+
+var writeTextToFile = function(text, filePath) {
+    var t = [NSString stringWithFormat:@"%@", text],
+    f = [NSString stringWithFormat:@"%@", filePath];
+    return [t writeToFile:f atomically:true encoding:NSUTF8StringEncoding error:nil];
+}
+
+var readTextFromFile = function(filePath) {
+    var fileManager = [NSFileManager defaultManager];
+    if([fileManager fileExistsAtPath:filePath]) {
+        return [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:nil];
+    }
+    return nil;
+}
+
+var jsonFromFile = function(filePath, mutable) {
+    var data = [NSData dataWithContentsOfFile:filePath];
+    var options = mutable == true ? NSJSONReadingMutableContainers : 0
+    return [NSJSONSerialization JSONObjectWithData:data options:options error:nil];
+}
+
+var saveJsonToFile = function(jsonObj, filePath) {
+    writeTextToFile(stringify(jsonObj), filePath);
+}
 
 
-loadFromJson = function(){
+loadFromJson=function(){
     json = {};
     text_layers = {};
     var app = NSApp.delegate();
@@ -531,7 +403,9 @@ loadFromJson = function(){
     var filePath = open.URLs().firstObject().path();
     var fileContents = NSString.stringWithContentsOfFile(filePath);
 
-    combined_json = JSON.parse(fileContents.toString());
+    combined_json = jsonFromFile(filePath, true)
+
+    //combined_json = JSON.parse(fileContents.toString());
 
     LOG(combined_json);
 
@@ -551,7 +425,7 @@ loadFromJson = function(){
 }
 
 //convert json output from buildjson_json(context.selection[0]) to human readable
-convert_json_to_human = function(obj){
+convert_json_to_human=function(obj){
     var temp_obj = {};
     for (var key in obj){
         var value = obj[key];
@@ -567,8 +441,7 @@ convert_json_to_human = function(obj){
 }
 
 
-//look into the json to find an exact_text and add the path to this array: look_deeper_list = []
-look_deeper = function(obj,exact_text,path){ 
+look_deeper=function(obj,exact_text,path){ 
     if(typeof path == "undefined"){var path = ""}; 
     if(typeof obj == "undefined"){return "obj is not defined"};
     if(typeof exact_text == "undefined"){return "exact_text is not defined"};
@@ -609,46 +482,26 @@ var findAndReplaceEvery = function(context){
     //ask user what text they want to find with a dialog
     var exact_text = [document askForUserInput:'What do you want to find?' initialValue:'exact text here'];
 
-    //ask user what text they want to change it with
-    var substitute_text = [document askForUserInput:'How do you want to change it?' initialValue:'exact text here'];
-
-    //json = {};
-    //this is needed to make json variable available
-    jsonSymbolsInCurrentPage()
-
-    LOG(json)
+    //make a list of layers 
+    var list = findSameValueTextLayer_text(exact_text);
 
     look_deeper_list =[]
-    var list = []
 
-    //if exact_text is made of 2 or more words then split the words and call fn multiple times
-    if(exact_text.indexOf("&&")>-1){ 
-        list = []
-        for (var i = exact_text.split("&&").length - 1; i >= 0; i--) {
-             //(symbols only) 
-            look_deeper(json,exact_text.split("&&")[i]);
+    jsonSymbolsInCurrentPage()
+    look_deeper(json,exact_text)
 
-            //make a list of layers that matches the exact_text
-            list = list.concat(findSameValueTextLayer_text(exact_text.split("&&")[i]));LOG(list)
-        };
-        
-    }else{
+    //if nothing returns alert the user
+    if(list.length < 1 && look_deeper_list.length < 1){alert("No layer found with text: "+exact_text)}else{
+        //ask user what text they want to change it with
+        var substitute_text = [document askForUserInput:'How do you want to change it?' initialValue:'exact text here'];
 
-        //(symbols only) 
-        look_deeper(json,exact_text)
-        //make a list of layers that matches the exact_text
-        list = findSameValueTextLayer_text(exact_text);LOG(list)
+        //apply new value
+        for (var i = 0; i < list.length; i++) {
+            //list[i].select_byExpandingSelection(true, true);
+            list[i].setStringValue(substitute_text);
+        }   
     }
 
-    LOG('##### Show List ######')
-
-    LOG(look_deeper_list)
-
-    //apply new value to text layers
-    for (var i = 0; i < list.length; i++) {
-        //list[i].select_byExpandingSelection(true, true);
-        list[i].setStringValue(substitute_text);
-    }
 
     //from the list apply the changes calling editKey
     for (var i = look_deeper_list.length - 1; i >= 0; i--) {
@@ -657,9 +510,6 @@ var findAndReplaceEvery = function(context){
         var path_to_edit = remove_dot.slice(remove_dot.indexOf(".")+1)+"."
         editKey(findById(entity_id),path_to_edit,substitute_text)
     };
-
-        //if nothing returns alert the user
-    if(list.length < 1 && look_deeper_list.length < 1){alert("No layer found with text: "+exact_text)}
 
 }
 

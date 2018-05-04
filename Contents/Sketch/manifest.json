@@ -158,7 +158,7 @@
     "title" : "Bulk Tools for Sketch"
   },
   "identifier" : "com.fed.autotool",
-  "version" : "2.5",
+  "version" : "3.0",
   "description" : "Tool to [BULK AUTORENAME] && [BULK REPLACE TEXT], [READY TO EXPORT] before Anima, [SELECTION] and [COLOR SWAP]",
   "authorEmail" : "federico.fala@gmail.com",
   "appcast": "https://raw.githubusercontent.com/nakele/autotool/master/appcast.xml",
