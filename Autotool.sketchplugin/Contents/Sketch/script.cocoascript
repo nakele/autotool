@@ -5,9 +5,6 @@ artboards = document.artboards();
 pages = document.pages();
 selection = context.selection;
 json = {};
-LOG = function(a){
-    //log(a);
-}
 
 newShape = function(x, y, w, h, r, Fx, Fy, name, R, G, B, A){
         var Rectangle = require('sketch/dom').Rectangle;
@@ -50,63 +47,104 @@ process_addObjectForShapeArray = function(){
     };
 }
 
-//helper for dialog
-getAlertWindow = function() {
-    var alert = COSAlertWindow.new();
-    return alert;
+
+
+//set interval like javascript 
+//fn is the function needed to pass
+//time_ms is the time in milliseconds
+setInterval = function(fn, time_ms) {
+  coscript.setShouldKeepAround(true);
+  var time_sec = time_ms / 1000;
+  return coscript.scheduleWithRepeatingInterval_jsFunction(time_sec, fn);
 }
 
-fakeFunc = function() {
-    og("Fake func");
+//clear interval > setInterval returns the interval so keep track of that in order to clear it
+clearInterval = function(interval) {
+  coscript.setShouldKeepAround(false);
+  interval.cancel();
 }
 
-//define a dialog
-newAlert = function(title){
-var settingsWindow = getAlertWindow();
-settingsWindow.setMessageText((title)?title:"Title");
-return settingsWindow
+//return HR + MIN + SEC so this does not work at midnight
+timestamp = function(){
+    var time = Date().split(" ")[4].split(":");
+    return (time[0]*60+time[1])*60+time[2]
 }
 
-//add a button to dialog
-addButton = function(alert,string,fn){
-    alert.addButtonWithTitle((string)?string:"Ok");
+
+//make a list of all the layers from the current page
+children = [];
+currentChildren = document.currentPage().children();
+//
+for(var i=0; i<currentChildren.length; i++){
+    children.push(currentChildren[i]);
+}
+//*/
+
+//old version
+/*/
+for(var i=0; i<document.currentPage().children().length; i++){
+    children.push(document.currentPage().children()[i])
+}
+//*/
+
+
+//  #########################################################
+//  ### This is an emulation of for loop that includes    ###
+//  ### a message every second to inform of the progress  ###
+//  #########################################################
+
+document.showMessage("Plugin started");
+
+now = timestamp();
+
+fnn = function(){
+    document.showMessage("In progress "+Math.round((i/document.currentPage().children().length)*100)+"%");
+    clearInterval(interval);
+    while_loop_fn();
 }
 
-//add radial to dialog
-addRadial = function(alert,string,fn){
-    var pageButton = NSButton.alloc().initWithFrame(NSMakeRect(0,0,300,22));
-    pageButton.setTitle((string)?string:"Label");
-    pageButton.setButtonType(NSRadioButton);
-    pageButton.setAction(fn);
-    alert.addAccessoryView(pageButton);
-    return pageButton;
+interval = 0;
+
+i = 0;
+now = null;
+
+while_loop_fn = function(){
+while(i<document.currentPage().children().length){
+    if(now==null){now=timestamp()};
+    if(timestamp()-now>=1){
+        now=null;
+        interval = setInterval(fnn,100);
+        return;
+    }
+    children.push(document.currentPage().children()[i]);
+    i+=1;
+}
+if(i>=document.currentPage().children().length){
+    document.showMessage("Plugin completed");
+}
 }
 
-//add checkbox to dialog
-addCheckBox = function(alert,string,fn){
-    var showsWarningCheckbox = NSButton.alloc().initWithFrame(NSMakeRect(0,0,300,22));
-        showsWarningCheckbox.setButtonType(NSSwitchButton);
-        showsWarningCheckbox.setBezelStyle(0);
-        showsWarningCheckbox.setTitle((string)?string:"Label");
-        showsWarningCheckbox.setState(NSOffState);
-        alert.addAccessoryView(showsWarningCheckbox);
-        return showsWarningCheckbox;
-}
+//enable the loop above
+//It only works with "i" for index
+//while_loop_fn();
 
-//call dialog
-runAlert = function(alert){
-    return alert.runModal();
-}
 
-//fake function
-fn = function(){log("log")}
+//  #########################################################
+//  ### End of loop emulation                             ###
+//  #########################################################
+
+
+
+//a way to enable and disable log everywhere
+LOG = function(a){
+    //log(a);
+}
 
 //define a popup handler
 alert = function(msg) {
         var app = [NSApplication sharedApplication];
         [app displayDialog:msg];
     }
-
 //pass a string and it will replace shash with dot everywhere
 //then return back that string
 replace_slash = function(input){
@@ -130,21 +168,21 @@ end = function(item){
 //the obj which is the json
 //path in the shape of xxx.yyy.zzz
 //value to assign to that path
-JSONbuilder = function (obj, path, value){ LOG("BUILDER_PATH: "+path); LOG("BUILDER_VALUE: "+value);
-var pointer = obj;
-var path = path.split(".");
-//log(path)
-for(var i=0; i<path.length; i++){
-if(typeof pointer[path[i]+""] == "undefined"&&i<path.length-1){
-    pointer[path[i]+""]={}; pointer = pointer[path[i]+""];
-}else if(typeof pointer[path[i]+""] == "undefined" || typeof pointer[path[i]+""] == "string" || typeof pointer[path[i]+""] == "number"){
-    LOG("change it with: "+value)
-    pointer[path[i]+""]=value+"";
-}else{
-    pointer = pointer[path[i]+""];
-};
-}
-return {"obj":obj,"pointer":pointer};
+JSONbuilder = function(obj, path, value){ LOG("BUILDER_PATH: "+path); LOG("BUILDER_VALUE: "+value);
+    var pointer = obj;
+    var path = path.split(".");
+    //log(path)
+    for(var i=0; i<path.length; i++){
+    if(typeof pointer[path[i]+""] == "undefined"&&i<path.length-1){
+        pointer[path[i]+""]={}; pointer = pointer[path[i]+""];
+    }else if(typeof pointer[path[i]+""] == "undefined" || typeof pointer[path[i]+""] == "string" || typeof pointer[path[i]+""] == "number"){
+        LOG("change it with: "+value)
+        pointer[path[i]+""]=value+"";
+    }else{
+        pointer = pointer[path[i]+""];
+    };
+    }
+    return {"obj":obj,"pointer":pointer};
 }
 
 //iterate a symbol overridePoints
@@ -172,37 +210,29 @@ buildSymbolView = function(array,json_view){
         buildSymbolView(array[i].internalChildren(),json_view)
         }
     }
-return json_view
+    return json_view
 }
 
-//make a list of all the layers from the current page
-var children = [];
-var currentChildren = document.currentPage().children();
-//
-for(var i=0; i<currentChildren.length; i++){
-    children.push(currentChildren[i]);
-}
-//*/
 
-
-//find all the layers in the current page that match the given value
-findSameValueTextLayer_text = function(text){
-var list = [];
-var a = text;
-for(var i=0; i<children.length; i++){
-    if(children[i].className().isEqualToString('MSTextLayer')){
-        //LOG(children[i].className()+" and "+children[i].stringValue()+"; Also "+text.className()+" and "+text.stringValue());
-        var b = ""+children[i].stringValue();
-        if(a == b){LOG("true");
-            list.push(children[i]);
-        };
-    }
-};
-return list;
+//find all the layers in the current page that match the given value, maybe use selection
+findSameValueTextLayer_text = function(text,selection){
+    var list = [];
+    var a = text;
+    var selection = selection || children;
+    for(var i=0; i<selection.length; i++){
+        if(selection[i].className().isEqualToString('MSTextLayer')){
+            //LOG(children[i].className()+" and "+children[i].stringValue()+"; Also "+text.className()+" and "+text.stringValue());
+            var b = ""+selection[i].stringValue();
+            if(a == b){LOG("true");
+                list.push(selection[i]);
+            };
+        }
+    };
+    return list;
 }
 
 //find all the layers in the current page that HAVE the given value, maybe use selection
-function findTextLayer_approxText (text,selection){
+findTextLayer_approxText = function(text,selection){
     var list = [];
     var a = text;
     var selection = selection || children;
@@ -220,13 +250,13 @@ function findTextLayer_approxText (text,selection){
 
 //find all the layers in the current page that are text
 findTextLayers = function(){
-var list = [];
-for(var i=0; i<children.length; i++){
-    if(children[i].className().isEqualToString('MSTextLayer')){
-            list.push(children[i]);
-    }
-};
-return list;
+    var list = [];
+    for(var i=0; i<children.length; i++){
+        if(children[i].className().isEqualToString('MSTextLayer')){
+                list.push(children[i]);
+        }
+    };
+    return list;
 }
 
 
@@ -234,7 +264,7 @@ return list;
 findSameValueTextLayer = function(layer){
     var text = ""+layer.stringValue();
     findSameValueTextLayer_text(text);
-return list;
+    return list;
 }
 
 //pass a list of text layers and apply the value
@@ -244,7 +274,6 @@ applyNewValueToTextLayers = function(text_layers){
         findById(key+"").setStringValue(text_layers[key])
     }
 }
-
 
 
 //overrideSymbol2
@@ -298,19 +327,24 @@ overrideSymbolByPath = function(symbol,key,value,action){
     iterateOverrides(prop,overrides); 
     LOG("The final PROP is"); LOG(prop);
 
-    if(action){LOG("DELETE ACTION");
+    if(action=="delete"){LOG("DELETE ACTION");
     PROP = {};
     iterateOverrides(PROP,prop,key);
     prop = PROP;
+    }else if(action=="get"){LOG("GET ACTION");
+
+
     }else{LOG("EDIT ACTION");
     PROP = prop;
     builderz(PROP,key,value);
     prop = PROP;
     };
+
     LOG("Proccessed prop =")
     LOG(prop);
     symbol.setOverrides(prop);
 }
+
 
 //find layer by ID
 findById = function(id){
@@ -342,10 +376,10 @@ findById = function(id){
 
 
 //delete key
-deleteKey=function(symbol,key){overrideSymbolByPath(symbol,key,"_","delete");}
-editKey=function(symbol,key,value){overrideSymbolByPath(symbol,key,value);}
+deleteKey = function(symbol,key){overrideSymbolByPath(symbol,key,"_","delete");}
+editKey = function(symbol,key,value){overrideSymbolByPath(symbol,key,value);}
 
-iterateSymbolsAndDoSomething=function(select,fn){
+iterateSymbolsAndDoSomething = function(select,fn){
     for(var i = 0; i < select.length; i++){
         if(select[i].className().isEqualToString('MSSymbolInstance')){
             LOG("Iterate"+select[i])
@@ -354,21 +388,43 @@ iterateSymbolsAndDoSomething=function(select,fn){
     }
 }
 
-jsonSymbolsInCurrentPage=function(){
-    iterateSymbolsAndDoSomething(document.currentPage().children(),buildjson_json);
+currentSelection = function(){
+    var currentChildren = []
+    for (var i = selection.length - 1; i >= 0; i--) {
+        var selected = selection[i];
+        if(selected.className().isEqualToString('MSLayerGroup')||selected.className().isEqualToString('MSArtboardGroup')){
+            var groupChildren = selected.children();
+            for (var ii = groupChildren.length - 1; ii >= 0; ii--) {
+                currentChildren.push(groupChildren[ii]);
+            };
+        }else{
+            currentChildren.push(selected);
+        }
+    };
+    return currentChildren
 }
 
-buildjson_json=function(symbol){
+jsonSymbolsInSelection = function(){
+    var currentChildren = currentSelection();
+    iterateSymbolsAndDoSomething(currentChildren,buildjson_json);
+}
+
+jsonSymbolsInCurrentPage = function(){
+    var currentChildren = document.currentPage().children();
+    iterateSymbolsAndDoSomething(currentChildren,buildjson_json);
+}
+
+buildjson_json = function(symbol){
     json = buildjson(symbol,json)
 }
 
-buildjson=function(symbol,json){
+buildjson = function(symbol,json){
     if(typeof json == "undefined"){var json = {};};
     json[symbol.objectID()+""]=buildSymbolView(symbol.availableOverrides());
     return json;
 }
 
-matchFromJson=function(jsonImported){
+matchFromJson = function(jsonImported){
     for(var layer in jsonImported){
         _layer = findById(layer+"");
         if(typeof _layer != "undefined" && _layer!="undefined" && _layer.className().isEqualToString('MSSymbolInstance')){
@@ -379,54 +435,54 @@ matchFromJson=function(jsonImported){
 
 
 
-saveToJson=function(){
+saveToJson = function(){
 
-json = {};
+    json = {};
 
-jsonSymbolsInCurrentPage();
+    jsonSymbolsInCurrentPage();
 
-var text_layers = findTextLayers();
-var json_text_layers = {}
-for (var i = text_layers.length - 1; i >= 0; i--) {
-    json_text_layers[text_layers[i].objectID()] = text_layers[i].stringValue()+"";
-};
+    var text_layers = findTextLayers();
+    var json_text_layers = {}
+    for (var i = text_layers.length - 1; i >= 0; i--) {
+        json_text_layers[text_layers[i].objectID()] = text_layers[i].stringValue()+"";
+    };
 
-var combined_json = {};
-combined_json.symbols = json;
-combined_json.text_layers = json_text_layers;
+    var combined_json = {};
+    combined_json.symbols = json;
+    combined_json.text_layers = json_text_layers;
 
-LOG("*****SHOW combined_json*****")
-LOG(combined_json);
+    LOG("*****SHOW combined_json*****")
+    LOG(combined_json);
 
-var save = NSSavePanel.savePanel();
-    save.setNameFieldStringValue("untitled.json");
-    save.setAllowedFileTypes(["json"]);
-    save.setAllowsOtherFileTypes(false);
-    save.setExtensionHidden(false);
+    var save = NSSavePanel.savePanel();
+        save.setNameFieldStringValue("untitled.json");
+        save.setAllowedFileTypes(["json"]);
+        save.setAllowsOtherFileTypes(false);
+        save.setExtensionHidden(false);
 
-if (save.runModal()) {
-    var filePath = save.URL().path();
-    var file = NSString.stringWithString(JSON.stringify(combined_json));
-        
-    //file.writeToFile_atomically_encoding_error(filePath, true, NSUTF8StringEncoding, null);
-    saveJsonToFile(combined_json, filePath)
+    if (save.runModal()) {
+        var filePath = save.URL().path();
+        var file = NSString.stringWithString(JSON.stringify(combined_json));
+            
+        //file.writeToFile_atomically_encoding_error(filePath, true, NSUTF8StringEncoding, null);
+        saveJsonToFile(combined_json, filePath)
 
-}   
+    }   
 }
 
-var stringify = function(obj, prettyPrinted) {
+stringify = function(obj, prettyPrinted) {
     var prettySetting = prettyPrinted ? NSJSONWritingPrettyPrinted : 0,
     jsonData = [NSJSONSerialization dataWithJSONObject:obj options:prettySetting error:nil];
     return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
 }
 
-var writeTextToFile = function(text, filePath) {
+writeTextToFile = function(text, filePath) {
     var t = [NSString stringWithFormat:@"%@", text],
     f = [NSString stringWithFormat:@"%@", filePath];
     return [t writeToFile:f atomically:true encoding:NSUTF8StringEncoding error:nil];
 }
 
-var readTextFromFile = function(filePath) {
+readTextFromFile = function(filePath) {
     var fileManager = [NSFileManager defaultManager];
     if([fileManager fileExistsAtPath:filePath]) {
         return [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:nil];
@@ -434,18 +490,18 @@ var readTextFromFile = function(filePath) {
     return nil;
 }
 
-var jsonFromFile = function(filePath, mutable) {
+jsonFromFile = function(filePath, mutable) {
     var data = [NSData dataWithContentsOfFile:filePath];
     var options = mutable == true ? NSJSONReadingMutableContainers : 0
     return [NSJSONSerialization JSONObjectWithData:data options:options error:nil];
 }
 
-var saveJsonToFile = function(jsonObj, filePath) {
+saveJsonToFile = function(jsonObj, filePath) {
     writeTextToFile(stringify(jsonObj), filePath);
 }
 
 
-loadFromJson=function(){
+loadFromJson = function(){
     json = {};
     text_layers = {};
     var app = NSApp.delegate();
@@ -489,7 +545,7 @@ loadFromJson=function(){
 }
 
 //convert json output from buildjson_json(context.selection[0]) to human readable
-convert_json_to_human=function(obj){
+convert_json_to_human = function(obj){
     var temp_obj = {};
     for (var key in obj){
         var value = obj[key];
@@ -505,7 +561,10 @@ convert_json_to_human=function(obj){
 }
 
 
-look_deeper=function(obj,exact_text,path){ 
+
+look_deeper_list =[]
+
+look_deeper = function(obj,exact_text,path){ 
     if(typeof path == "undefined"){var path = ""}; 
     if(typeof obj == "undefined"){return "obj is not defined"};
     if(typeof exact_text == "undefined"){return "exact_text is not defined"};
@@ -556,12 +615,6 @@ getValue = function(obj,pathToValue,path,valueToReturn){
     };
     if(valueToReturn){return valueToReturn};
 }
-
-
-//########################################################
-//##                    MODAL HANDLERS                  ##
-//########################################################
-
 
 //helper for dialog
 getAlertWindow = function() {
@@ -659,7 +712,7 @@ addInputField = function(alert,string,fn){
 }
 
 
-var selectOptions = ['Option1', 'Option2'];
+selectOptions = ['Option1', 'Option2'];
 
 addDropDownMenu = function(alert,string,fn){
     var orderSelect = NSComboBox.alloc().initWithFrame(NSMakeRect(0,0,268,28))
@@ -670,11 +723,9 @@ addDropDownMenu = function(alert,string,fn){
 }
 
 //fake function
-fn = function(){log("log")}
+fn = function(){LOG("log")}
 
-//########################################################
-//##            END OF MODAL HANDLERS                   ##
-//########################################################
+
 
 }
 //########################################################
@@ -726,6 +777,7 @@ if(ok&&!cancel){
 
 //ask user what text they want to find with a dialog
 //var exact_text = [document askForUserInput:'What do you want to find?' initialValue:'exact text here'];
+
 
 
 //make a list of layers 
@@ -793,13 +845,13 @@ if(list.length < 1 && look_deeper_list.length < 1){alert("No layer found with te
     //json = {};
     //if(context.selection.length > 0){jsonSymbolsInSelection()}else{jsonSymbolsInCurrentPage()}
 
-    log(json)
+    LOG(json)
 
     //look_deeper(json,exact_text)
 
-    log('##### Show List ######')
+    LOG('##### Show List ######')
 
-    log(look_deeper_list)
+    LOG(look_deeper_list)
 
     //edit key with this new value for symbols edit(symbol,key_path,new_value)
     for (var i = look_deeper_list.length - 1; i >= 0; i--) {
