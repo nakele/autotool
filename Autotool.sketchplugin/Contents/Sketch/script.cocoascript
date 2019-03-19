@@ -6,6 +6,101 @@ pages = document.pages();
 selection = context.selection;
 json = {};
 
+ClassGroup = require('sketch/dom').Group;
+
+//move selection of object into a group
+moveSelectionToGroup = function(selection){
+var list = [];
+selection.forEach(function (layer, i) {
+    list.push(layer);
+  });
+var parent = list[0].parentObject();
+var newGroup = new ClassGroup({
+                          name: "Group",
+                          layers: list,
+                          parent: parent,
+                          });
+for(var i in list){
+parent.removeLayer(list[i]);
+}
+newGroup.adjustToFit();
+}
+
+//unlink a symbol instance from it's library
+unlink = function(symbol){
+  symbol.unlinkFromRemote();
+}
+
+//this loop through linked instances and unlink all of them
+loopUnlink = function(){
+
+var _loopUnlink = function(){
+
+  list = [];
+
+  for (var i = 0; i < documentData.foreignSymbols().count(); i++) {
+
+    var foreignSymbol = documentData.foreignSymbols().objectAtIndex(i);
+
+    list.push(foreignSymbol);
+    unlink(foreignSymbol);
+
+  }
+  log(list.length)
+  if(documentData.foreignSymbols().count()>0){_loopUnlink()}
+
+}
+
+var documentData = context.document.documentData();
+
+var list = []
+
+_loopUnlink();
+
+}
+
+breakAllSymbols = function(_list,recursively){
+    if(typeof recursively == "undefined"){recursively = true}else if(typeof recursively != "boolean"){return "Second parameter needs to be true or false"};
+    if(typeof _list == "undefined"){return "An array of symbols is needed"};
+var sketch = require('sketch')
+
+var document = sketch.getSelectedDocument()
+
+var selectedLayers = _list
+var selectedCount = selectedLayers.length
+
+if (selectedCount === 0) {
+  console.log('No layers found.')
+} else {
+  console.log('Recursively detaching '+ selectedCount + " layers");
+  selectedLayers.forEach(function (layer, i) {
+    if(layer.className() == "MSSymbolInstance"){
+        var sketchObject = sketch.fromNative(layer)
+        sketchObject.detach({recursively: recursively})
+    }
+  })
+}
+}
+
+selectAllInstanes = function(){
+var document = context.document;
+
+var list = []
+
+list = document.currentPage().children();
+
+var _list = [];
+for(var i = 0; i < list.length; i++){
+if(list[i].className() == "MSSymbolInstance"){
+_list.push(list[i]);
+}
+}
+
+return _list
+
+}
+
+//newshape
 newShape = function(x, y, w, h, r, Fx, Fy, name, R, G, B, A){
         var Rectangle = require('sketch/dom').Rectangle;
         var rect = new Rectangle(x, y, w, h);
@@ -223,7 +318,7 @@ findSameValueTextLayer_text = function(text,selection){
         if(selection[i].className().isEqualToString('MSTextLayer')){
             //LOG(children[i].className()+" and "+children[i].stringValue()+"; Also "+text.className()+" and "+text.stringValue());
             var b = ""+selection[i].stringValue();
-            if(a == b){LOG("true");
+            if(a == b || a == "***"){LOG("true");
                 list.push(selection[i]);
             };
         }
@@ -571,7 +666,14 @@ look_deeper = function(obj,exact_text,path){
     for(var key in obj){log(key)
         var value = obj[key];
         if(typeof value == "string"){
-            if(value == exact_text){look_deeper_list.push(path+"."+key)}
+            log("****START*****");log(value);log("****END*****");
+            if(value == exact_text){
+                log("===>FOUND");
+                look_deeper_list.push(path+"."+key)
+            }else if(exact_text == "***" && value.toString() != "symbolID" && !(value.toString().split("-")[0].length == 8 && value.toString().split("-")[1].length == 4 && value.toString().split("-")[2].length == 4 && value.toString().split("-")[3].length == 4 && value.toString().split("-")[4].length == 12) ){
+                log("===>JOLLY");
+                look_deeper_list.push(path+"."+key)
+            }
         }else if(typeof value == "object"){
             look_deeper(value,exact_text,path+"."+key);
         }
@@ -756,6 +858,8 @@ addText(myModal,"How to replace?");
 var substitute_text = addInputField(myModal,"Type how to replace here");
 addText(myModal," ");
 addText(myModal,"NB. Strict mode will only match the whole string of a text. It won't find text within a string.","h=60,fontSize=10");
+var applyEverywhere = addCheckBox(myModal,"Skip find, just replace!");
+var highlight = addCheckBox(myModal,"Highlight changes?");
 var ok = addButton(myModal,"Ok");
 var cancel = addButton(myModal,"Cancel");
 //Enable to run modal
@@ -765,6 +869,8 @@ runAlert(myModal);
 substitute_text = substitute_text.stringValue();
 exact_text = exact_text.stringValue();
 strict = parseInt(strict.stringValue());
+applyEverywhere = parseInt(applyEverywhere.stringValue());
+highlight = parseInt(highlight.stringValue());
 ok = parseInt(ok.stringValue());
 cancel = parseInt(cancel.stringValue());
 
@@ -781,7 +887,9 @@ if(ok&&!cancel){
 
 
 //make a list of layers 
-if(context.selection.length > 0){
+if(context.selection.length > 0 && applyEverywhere){
+        var list = findSameValueTextLayer_text("***",currentSelection());
+}else if(context.selection.length > 0){
     switch(strict){
         case 0:
         var list = findTextLayer_approxText(exact_text,currentSelection());
@@ -804,11 +912,21 @@ if(context.selection.length > 0){
         var list = findTextLayer_approxText(exact_text);
     }
 }
+
+
 LOG(list)
 
 json = {};
-if(context.selection.length > 0){jsonSymbolsInSelection()}else{jsonSymbolsInCurrentPage()}
-    switch(strict){
+if(context.selection.length > 0 && applyEverywhere){
+
+        jsonSymbolsInSelection();
+        look_deeper(json,"***");
+        strict = 1;
+
+    }else if(context.selection.length > 0){
+        jsonSymbolsInSelection();
+
+        switch(strict){
         case 0:
         look_deeper_approx(json,exact_text)
         break;
@@ -817,7 +935,23 @@ if(context.selection.length > 0){jsonSymbolsInSelection()}else{jsonSymbolsInCurr
         break;
         default:
         look_deeper_approx(json,exact_text)
+        }
+
+    }else{
+        jsonSymbolsInCurrentPage();
+
+        switch(strict){
+        case 0:
+        look_deeper_approx(json,exact_text)
+        break;
+        case 1:
+        look_deeper(json,exact_text)
+        break;
+        default:
+        look_deeper_approx(json,exact_text)
+        }
     }
+    
 
 
 //if nothing returns alert the user
@@ -849,9 +983,9 @@ if(list.length < 1 && look_deeper_list.length < 1){alert("No layer found with te
 
     //look_deeper(json,exact_text)
 
-    LOG('##### Show List ######')
+    log('##### Show List ######')
 
-    LOG(look_deeper_list)
+    log(look_deeper_list)
 
     //edit key with this new value for symbols edit(symbol,key_path,new_value)
     for (var i = look_deeper_list.length - 1; i >= 0; i--) {
@@ -872,7 +1006,7 @@ if(list.length < 1 && look_deeper_list.length < 1){alert("No layer found with te
         addObjectForShape(findById(entity_id))
     };
 
-    process_addObjectForShapeArray();
+    if(highlight){process_addObjectForShapeArray();}
 
 
 }
@@ -993,57 +1127,86 @@ alert("Error but I dont know")
 
 var onReadyToExport = function(context) {
 
-    var document = context.document;
-    var selection = context.selection;
-    var first = context.selection.firstObject();
-    var obj = 0;
-    var masters = [];
-    var slicesAdded = [];
+var document = context.document;
+var selection = context.selection;
+var obj = 0;
+var masters = [];
 
-    var alert= function(msg) {
-        var app = [NSApplication sharedApplication];
-        [app displayDialog:msg];
-    }
+initiate(context);
 
-    addSlice = function(where){
-    var slice = MSSliceLayer.alloc().initWithFrame_(NSMakeRect(0, 0, where.rect().size.width, where.rect().size.height));
-    slice.setName(where.name());
-    where.addLayers_([slice]);
-    slice.exportOptions().setLayerOptions(2);
-    slice.exportOptions().setExportFormats(where.exportOptions().exportFormats());
-    slicesAdded.push(slice);
-    }
+var myalert = newAlert("Make sure you duplicate this document before!")
+addButton(myalert,"Go",fn)
+addButton(myalert,"Cancel",fn)
+//addRadial(myalert,"Options",fn)
+//checkbox = addCheckBox(myalert,"Remove export options from Symbol",fn)
 
-    //log(document.pages()[1].children())
-    for(var i=0; i < document.pages().count(); i++){
-        if(document.pages()[i].name() == "Symbols"){
-            var symbolPage = document.pages()[i];
-            for(var j=0; j < symbolPage.children().count(); j++){
-                if(symbolPage.children()[j].class() == "MSSymbolMaster"){
-                    masters.push(symbolPage.children()[j]);
-                }
-            }
-        }
-    }
 
-    for(var i = 0; i < masters.length; i++){
-        if(masters[i].exportOptions().exportFormats().count() > 0){
-            addSlice(masters[i]);
-        }
-    }
 
-    [APSketch duplicateAndDetachAllSymbols];
+addSlice = function(where){
+var slice = MSSliceLayer.alloc().initWithFrame_(NSMakeRect(0, 0, where.rect().size.width, where.rect().size.height));
+slice.setName(where.name());
+where.addLayers_([slice]);
+slice.exportOptions().setLayerOptions(2);
+slice.exportOptions().setExportFormats(where.exportOptions().exportFormats());
 
-    for(var i = 0; i < slicesAdded.length; i++){
-        slicesAdded[i].parentObject().removeLayer(slicesAdded[i]);
-    }
+/*if(checkbox.state() == 0 ? 0 : 1){
+where.exportOptions().setExportFormats([]);
+}*/
+
+}
+
+var runThis = function(){
+
+    //detach all the instances from library
+    loopUnlink();
+
+//log(document.pages()[1].children())
+for(var i=0; i < document.pages().count(); i++){
+if(document.pages()[i].name() == "Symbols"){
+var symbolPage = document.pages()[i];
+for(var j=0; j < symbolPage.children().count(); j++){
+if(symbolPage.children()[j].class() == "MSSymbolMaster"){
+masters.push(symbolPage.children()[j]);
+}
+}
+}
+}
+
+var number = 0
+
+for(var i = 0; i < masters.length; i++){
+if(masters[i].exportOptions().exportFormats().count() > 0){
+    moveSelectionToGroup(masters[i].layers());
+    addSlice(masters[i]);
+    number+=1;
+}
+}
+
+//select all the instances
+var myElement = selectAllInstanes();
+
+//Break recursivelly all the instances
+breakAllSymbols(myElement);
+
+number = number+" slices added!"
+
+
+
+alert( (i==0)?"Done : ":number )
+}
+
+response = (1001-runAlert(myalert)>0)?true:false
+
+if(response){
+    runThis();
+}
 
 };
 
 //#######################################################
 //#######################################################
 
-var onAddSicesAnima = function(context) {
+var onAddSlicesAnima = function(context) {
 
 var document = context.document;
 var selection = context.selection;
@@ -1053,7 +1216,7 @@ var masters = [];
 initiate(context);
 
 var myalert = newAlert("Add Slices before export")
-addButton(myalert,"Save",fn)
+addButton(myalert,"Go",fn)
 addButton(myalert,"Cancel",fn)
 //addRadial(myalert,"Options",fn)
 checkbox = addCheckBox(myalert,"Remove export options from Symbol",fn)
@@ -1091,8 +1254,9 @@ var number = 0
 
 for(var i = 0; i < masters.length; i++){
 if(masters[i].exportOptions().exportFormats().count() > 0){
-addSlice(masters[i]);
-number+=1;
+    moveSelectionToGroup(masters[i].layers());
+    addSlice(masters[i]);
+    number+=1;
 }
 }
 

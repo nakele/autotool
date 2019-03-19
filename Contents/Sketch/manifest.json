@@ -69,7 +69,7 @@
       "name" : "Add Slices before [READY TO EXPORT]",
       "shortcut": "",
       "handlers" : {
-        "run" : "onAddSicesAnima"
+        "run" : "onAddSlicesAnima"
       },
       "identifier" : "com.bohemiancoding.sketch.runscriptidentifier6"
     },
@@ -158,7 +158,7 @@
     "title" : "Bulk Tools for Sketch"
   },
   "identifier" : "com.fed.autotool",
-  "version" : "3.2",
+  "version" : "3.4",
   "description" : "Tool to [BULK AUTORENAME] && [BULK REPLACE TEXT], [READY TO EXPORT] before Anima, [SELECTION] and [COLOR SWAP]",
   "authorEmail" : "federico.fala@gmail.com",
   "appcast": "https://raw.githubusercontent.com/nakele/autotool/master/appcast.xml",
